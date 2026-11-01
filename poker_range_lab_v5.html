@@ -1,0 +1,1278 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>德州撲克全功能實驗室 v5</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .grid-matrix {
+      display: grid;
+      grid-template-columns: repeat(13, minmax(0, 1fr));
+      gap: 2px;
+      user-select: none;
+    }
+    .cell {
+      aspect-ratio: 1 / 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.05s, filter 0.1s;
+      border-radius: 2px;
+      position: relative;
+    }
+    .cell:hover {
+      filter: brightness(1.25);
+      z-index: 5;
+      transform: scale(1.08);
+    }
+    .badge-count {
+      position: absolute;
+      bottom: 1px;
+      right: 2px;
+      font-size: 8px;
+      line-height: 1;
+      font-weight: 700;
+      color: #38bdf8;
+    }
+    @media (max-width: 640px) {
+      .cell { font-size: 8px; }
+      .grid-matrix { gap: 1px; }
+      .badge-count { font-size: 6px; right: 1px; bottom: 0px; }
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans">
+
+  <!-- Header -->
+  <header class="bg-slate-900 border-b border-slate-800 px-4 sm:px-6 py-4 flex flex-wrap justify-between items-center gap-4">
+    <div class="flex items-center gap-3">
+      <span class="text-2xl">♠️</span>
+      <div>
+        <h1 class="text-lg font-bold tracking-wide text-white">德州撲克全功能實驗室</h1>
+        <p class="text-xs text-slate-400">時序動態流水帳強化版 / 自由文字與撤回還原 / 盲注與碼量即時打點</p>
+      </div>
+    </div>
+    
+    <!-- Tab Controls -->
+    <nav class="flex flex-wrap bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs sm:text-sm gap-1">
+      <button onclick="switchTab('counter')" id="tab-btn-counter" class="px-3 py-1.5 rounded-md font-medium text-white bg-blue-600 transition">📊 拿牌計數器</button>
+      <button onclick="switchTab('paint')" id="tab-btn-paint" class="px-3 py-1.5 rounded-md font-medium text-slate-400 hover:text-white transition">自由範圍上色</button>
+      <button onclick="switchTab('presets')" id="tab-btn-presets" class="px-3 py-1.5 rounded-md font-medium text-slate-400 hover:text-white transition">GTO 範圍庫</button>
+      <button onclick="switchTab('diff')" id="tab-btn-diff" class="px-3 py-1.5 rounded-md font-medium text-slate-400 hover:text-white transition">雙範圍比對</button>
+      <button onclick="switchTab('trainer')" id="tab-btn-trainer" class="px-3 py-1.5 rounded-md font-medium text-slate-400 hover:text-white transition">決策訓練 (暗牌)</button>
+    </nav>
+  </header>
+
+  <!-- Main Workspace -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+    
+    <!-- Left Column: 13x13 Range Matrix -->
+    <div class="lg:col-span-7 bg-slate-900 p-4 sm:p-5 rounded-xl border border-slate-800 shadow-xl flex flex-col gap-3 relative">
+      <div class="flex justify-between items-center">
+        <div class="flex items-center gap-2">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          <h2 id="matrix-title" class="font-bold text-sm tracking-wide text-slate-200">手牌矩陣 (13×13) - 拿牌計數中</h2>
+        </div>
+        <div id="matrix-stat" class="text-xs font-mono bg-slate-950 px-2.5 py-1 rounded border border-slate-800 text-cyan-400 font-medium">
+          拿過手牌: 0 / 169 種 (共 0 手)
+        </div>
+      </div>
+
+      <!-- Matrix Container -->
+      <div class="relative">
+        <div id="poker-matrix" class="grid-matrix bg-slate-950 p-1.5 rounded-lg border border-slate-800"></div>
+
+        <!-- Fog of war overlay for Trainer -->
+        <div id="trainer-fog" class="hidden absolute inset-0 bg-slate-950/85 backdrop-blur-sm rounded-lg flex flex-col items-center justify-center border border-slate-700/50 p-6 text-center">
+          <span class="text-4xl mb-2">🔒</span>
+          <p class="text-sm font-bold text-slate-200 mb-1">思考中：答案已隱藏</p>
+          <p class="text-xs text-slate-400 mb-4 max-w-xs leading-relaxed">請依據右側當前情境做出最佳行動，做出判斷後即會自動解鎖並點亮範圍。</p>
+          <button onclick="toggleFogManual()" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded text-slate-200 font-medium transition">
+            👁️ 手動顯示 / 隱藏矩陣
+          </button>
+        </div>
+      </div>
+
+      <!-- Matrix Footer Tips -->
+      <div class="flex justify-between items-center text-[11px] text-slate-400 pt-1">
+        <span id="matrix-footer-tip">點選手牌單次增加拿牌數；支援右側「倒扣」或「取消」撤銷。</span>
+        <button onclick="clearCurrentMatrix()" class="text-rose-400 hover:text-rose-300 transition">清空矩陣/數據</button>
+      </div>
+    </div>
+
+    <!-- Right Column: Context Panels -->
+    <div class="lg:col-span-5 flex flex-col gap-4">
+
+      <!-- Panel 1: Hand Frequency Counter (Default Active) -->
+      <div id="panel-counter" class="bg-slate-900 p-5 rounded-xl border border-slate-800 shadow-xl flex flex-col gap-4">
+        <div>
+          <div class="flex items-center justify-between">
+            <h3 class="font-bold text-slate-200 text-sm">手牌拿牌次數紀錄器</h3>
+            <span id="counter-total-badge" class="text-xs font-mono bg-blue-950 border border-blue-800 text-cyan-300 px-2.5 py-0.5 rounded">
+              總發牌數: 0 手
+            </span>
+          </div>
+          <p class="text-xs text-slate-400 mt-1">點擊左側手牌格子即記錄拿牌次數與當前時間點，熱度越高中獎顏色越深。</p>
+        </div>
+
+        <!-- Mode Toggle: Add or Deduct -->
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <button id="counter-mode-add" onclick="setCounterMode('add')" class="py-2 rounded-lg font-bold bg-blue-600 text-white border border-blue-500 transition flex items-center justify-center gap-1.5">
+            <span>➕</span> 累加模式 (+1)
+          </button>
+          <button id="counter-mode-sub" onclick="setCounterMode('sub')" class="py-2 rounded-lg font-bold bg-slate-950 text-slate-400 border border-slate-800 hover:text-white transition flex items-center justify-center gap-1.5">
+            <span>➖</span> 倒扣模式 (-1)
+          </button>
+        </div>
+
+        <!-- Undo & Reset Action Bar -->
+        <div class="flex items-center justify-between gap-2">
+          <button onclick="undoLastCounterLog()" class="flex-1 py-1.5 bg-amber-950/70 hover:bg-amber-900/80 border border-amber-800/80 text-amber-300 rounded-lg text-xs font-medium transition flex items-center justify-center gap-1">
+            ↩️ 取消/撤銷上一步
+          </button>
+          <button onclick="clearAllCounterData()" class="py-1.5 px-3 bg-rose-950/70 hover:bg-rose-900/80 border border-rose-800/80 text-rose-300 rounded-lg text-xs font-medium transition">
+            🗑️ 清空所有計數
+          </button>
+        </div>
+
+        <!-- NEW: Dedicated Input 1 - Custom Note / Textbox with independent Submit Button -->
+        <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 flex flex-col gap-2">
+          <div class="flex justify-between items-center text-xs">
+            <span class="font-semibold text-purple-400">💬 自訂文字備忘紀錄</span>
+            <span class="text-[10px] text-slate-500">撤回時自動還原文字</span>
+          </div>
+          <div class="flex gap-2">
+            <input type="text" id="log-custom-text" placeholder="輸入備忘、局況或手牌心得..." 
+                   onkeydown="if(event.key==='Enter') submitCustomLogText()"
+                   class="flex-1 bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-purple-500">
+            <button onclick="submitCustomLogText()" class="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white rounded text-xs font-medium transition whitespace-nowrap">
+              記下文字
+            </button>
+          </div>
+        </div>
+
+        <!-- NEW: Dedicated Input 2 - Current BB & Stack Size with independent Submit Button -->
+        <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 flex flex-col gap-2">
+          <div class="flex justify-between items-center text-xs">
+            <span class="font-semibold text-emerald-400">🪙 當前大盲與籌碼量打點</span>
+            <span class="text-[10px] text-slate-500">自動計算 BB 數</span>
+          </div>
+          <div class="grid grid-cols-12 gap-2 items-center">
+            <div class="col-span-4">
+              <input type="text" id="log-bb-size" placeholder="大盲(如: 1000)" 
+                     class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500">
+            </div>
+            <div class="col-span-5">
+              <input type="text" id="log-stack-size" placeholder="碼量(如: 25000)" 
+                     class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500">
+            </div>
+            <div class="col-span-3">
+              <button onclick="submitTableStateLog()" class="w-full py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-medium transition whitespace-nowrap">
+                記錄盲碼
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- History Log Stream (Right Bottom Records) -->
+        <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 flex flex-col gap-2">
+          <div class="flex justify-between items-center text-xs">
+            <span class="font-semibold text-slate-300">時序動態流水帳 (Time Log)</span>
+            <span id="counter-last-log" class="text-[11px] text-slate-500 font-mono">尚未紀錄手牌</span>
+          </div>
+          <div id="counter-log-list" class="max-h-44 overflow-y-auto space-y-1.5 text-[11px] font-mono pr-1 text-slate-300 divide-y divide-slate-900">
+            <div class="text-slate-600 py-3 text-center italic text-xs">點擊左側手牌格子或使用上方按鈕開始紀錄</div>
+          </div>
+        </div>
+
+        <!-- Hand Ranking Summary Top 5 -->
+        <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 text-xs">
+          <div class="font-semibold text-slate-300 mb-1.5 flex justify-between">
+            <span>最高頻率手牌 TOP 5</span>
+            <span class="text-[10px] text-slate-500">自動統計</span>
+          </div>
+          <div id="counter-top-list" class="space-y-1 text-[11px] font-mono text-slate-400">
+            尚無紀錄
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 2: Free Range Painter -->
+      <div id="panel-paint" class="hidden bg-slate-900 p-5 rounded-xl border border-slate-800 shadow-xl flex flex-col gap-4">
+        <div>
+          <h3 class="font-bold text-slate-200 text-sm">自由範圍上色與分析</h3>
+          <p class="text-xs text-slate-400 mt-1">選取筆刷顏色並於左側矩陣點擊或拖曳塗抹，自訂標籤與分析筆記</p>
+        </div>
+
+        <!-- Brush Selectors -->
+        <div class="flex flex-col gap-2">
+          <label class="text-xs font-medium text-slate-400">筆刷標籤與顏色</label>
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <button onclick="setBrush('#ef4444', '3-Bet / 4-Bet')" class="p-2 rounded border border-slate-700 flex items-center gap-2 hover:bg-slate-800 transition">
+              <span class="w-3.5 h-3.5 rounded-sm bg-red-500"></span> 3-Bet / Raise
+            </button>
+            <button onclick="setBrush('#3b82f6', 'Flat Call')" class="p-2 rounded border border-slate-700 flex items-center gap-2 hover:bg-slate-800 transition">
+              <span class="w-3.5 h-3.5 rounded-sm bg-blue-500"></span> Flat Call
+            </button>
+            <button onclick="setBrush('#eab308', 'Semi-Bluff')" class="p-2 rounded border border-slate-700 flex items-center gap-2 hover:bg-slate-800 transition">
+              <span class="w-3.5 h-3.5 rounded-sm bg-yellow-500"></span> 半詐唬 (Bluff)
+            </button>
+            <button onclick="setBrush('#10b981', 'Value')" class="p-2 rounded border border-slate-700 flex items-center gap-2 hover:bg-slate-800 transition">
+              <span class="w-3.5 h-3.5 rounded-sm bg-emerald-500"></span> 純價值 (Value)
+            </button>
+          </div>
+
+          <div class="flex items-center gap-2 mt-1 bg-slate-950 p-2 rounded-lg border border-slate-800 text-xs">
+            <input type="color" id="custom-color-picker" value="#a855f7" onchange="setCustomBrush(this.value)" class="w-7 h-7 rounded border-0 cursor-pointer bg-transparent">
+            <span class="text-slate-300 font-medium">自訂取色:</span>
+            <input type="text" id="custom-color-label" placeholder="標籤名稱 (如: 偷盲)" class="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200 flex-1">
+          </div>
+          
+          <button onclick="setBrush('transparent', 'Fold / 清除')" class="p-2 rounded border border-dashed border-slate-700 text-slate-400 hover:text-slate-200 text-xs text-center hover:bg-slate-800 transition">
+            🧹 橡皮擦 (清除格線)
+          </button>
+        </div>
+
+        <!-- Color Stats breakdown -->
+        <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 flex flex-col gap-1.5 text-xs">
+          <div class="text-[11px] font-semibold text-slate-400">上色統計分佈：</div>
+          <div id="paint-breakdown" class="flex flex-col gap-1 text-[11px] font-mono text-slate-300">
+            尚無上色牌型
+          </div>
+        </div>
+
+        <!-- Study Notes -->
+        <div>
+          <label class="block text-xs font-medium text-slate-400 mb-1">對局覆盤與筆記 (自動儲存)</label>
+          <textarea id="study-notes" rows="3" oninput="saveNotes()" placeholder="在此記錄特定對手的防守習慣、頻率缺失或 GTO 偏離思考..." class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 focus:outline-none focus:border-blue-500"></textarea>
+        </div>
+      </div>
+
+      <!-- Panel 3: GTO Presets Library -->
+      <div id="panel-presets" class="hidden bg-slate-900 p-5 rounded-xl border border-slate-800 shadow-xl flex flex-col gap-4">
+        <div>
+          <h3 class="font-bold text-slate-200 text-sm">GTO 常用翻前情境庫</h3>
+          <p class="text-xs text-slate-400 mt-1">涵蓋常用籌碼深度之開牌 (RFI) 與盲注抵抗策略</p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3 text-xs">
+          <div>
+            <label class="block text-slate-400 mb-1 font-medium">籌碼深度 (Stack)</label>
+            <select id="preset-depth" onchange="renderActivePreset()" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200">
+              <option value="40">40 BB (標準翻後)</option>
+              <option value="30">30 BB (高牌轉折)</option>
+              <option value="25">25 BB (3B-Shove 警戒)</option>
+              <option value="20">20 BB (Min-raise 臨界)</option>
+              <option value="15">15 BB (Push/Fold 邊界)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1 font-medium">位置與情境 (Position)</label>
+            <select id="preset-pos" onchange="renderActivePreset()" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200">
+              <optgroup label="開牌 (Raise First In)">
+                <option value="LJ">LJ 開牌 (Lowjack)</option>
+                <option value="HJ">HJ 開牌 (Hijack)</option>
+                <option value="CO">CO 開牌 (Cutoff)</option>
+                <option value="BTN" selected>BTN 開牌 (Button)</option>
+              </optgroup>
+              <optgroup label="盲注抵抗 (Defense)">
+                <option value="SB_def">SB 面對 Open (3B / Call)</option>
+                <option value="BB_def">BB 面對 Min-Raise (Defend)</option>
+              </optgroup>
+            </select>
+          </div>
+        </div>
+
+        <div class="bg-slate-950 p-3.5 rounded-lg border border-slate-800 text-xs flex flex-col gap-2">
+          <div class="font-semibold text-cyan-400" id="preset-desc-title">BTN 開牌範圍</div>
+          <p class="text-slate-400 leading-relaxed text-[11px]" id="preset-desc-body">正在載入情境說明...</p>
+        </div>
+
+        <button onclick="copyCurrentMatrixHands()" class="w-full py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-medium text-slate-200 transition">
+          📋 複製手牌代碼至剪貼簿
+        </button>
+      </div>
+
+      <!-- Panel 4: Range Diff -->
+      <div id="panel-diff" class="hidden bg-slate-900 p-5 rounded-xl border border-slate-800 shadow-xl flex flex-col gap-4">
+        <div>
+          <h3 class="font-bold text-slate-200 text-sm">雙範圍交集與差異比對 (Diff)</h3>
+          <p class="text-xs text-slate-400 mt-1">直觀分析不同位置、籌碼量或 ChipEV vs ICM 之間的範圍縮減</p>
+        </div>
+
+        <div class="space-y-3 text-xs">
+          <div>
+            <label class="block text-blue-400 mb-1 font-medium">基準範圍 A (藍底)</label>
+            <select id="diff-range-a" onchange="runRangeDiff()" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200">
+              <option value="40_BTN">40BB BTN 開牌 (45%)</option>
+              <option value="25_BTN">25BB BTN 開牌 (38%)</option>
+              <option value="15_BTN">15BB BTN 開牌 (28%)</option>
+              <option value="40_LJ">40BB LJ 開牌 (16%)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-amber-400 mb-1 font-medium">對比範圍 B (黃底)</label>
+            <select id="diff-range-b" onchange="runRangeDiff()" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-200">
+              <option value="40_LJ">40BB LJ 開牌 (16%)</option>
+              <option value="25_BTN">25BB BTN 開牌 (38%)</option>
+              <option value="15_BTN" selected>15BB BTN 開牌 (28%)</option>
+              <option value="40_BB_def">40BB BB 抵抗範圍 (68%)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Legend -->
+        <div class="bg-slate-950 p-3.5 rounded-lg border border-slate-800 text-xs flex flex-col gap-2">
+          <div class="flex items-center gap-2">
+            <span class="w-3.5 h-3.5 rounded bg-emerald-500"></span>
+            <span class="text-slate-200">綠色：兩者重疊 (A 與 B 皆包含)</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="w-3.5 h-3.5 rounded bg-blue-600"></span>
+            <span class="text-slate-200">藍色：僅 A 獨有 (在 B 中被剔除)</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="w-3.5 h-3.5 rounded bg-amber-500"></span>
+            <span class="text-slate-200">黃色：僅 B 獨有 (在 A 中未包含)</span>
+          </div>
+        </div>
+
+        <div id="diff-stats" class="text-xs font-mono text-slate-400 p-2 bg-slate-950 rounded border border-slate-800">
+          重疊組合: - | 差異組合: -
+        </div>
+      </div>
+
+      <!-- Panel 5: Trainer -->
+      <div id="panel-trainer" class="hidden bg-slate-900 p-5 rounded-xl border border-slate-800 shadow-xl flex flex-col gap-4">
+        <div class="flex justify-between items-start">
+          <div>
+            <h3 class="font-bold text-slate-200 text-sm">翻前決策特訓 (防透題)</h3>
+            <p class="text-xs text-slate-400 mt-0.5">作答時暗色迷霧遮蔽左側，交卷後即時高亮解鎖</p>
+          </div>
+          <span id="trainer-score" class="text-xs font-mono bg-blue-950/60 border border-blue-800 text-blue-300 px-2.5 py-1 rounded">
+            得分: 0 / 0
+          </span>
+        </div>
+
+        <!-- Scenario Card -->
+        <div class="bg-slate-950 p-4 rounded-lg border border-slate-800 flex flex-col gap-3">
+          <div class="flex justify-between items-center text-xs text-slate-400">
+            <span id="quiz-meta" class="font-medium text-slate-300">情境載入中...</span>
+            <span id="quiz-badge" class="px-2 py-0.5 rounded bg-slate-800 text-[10px]">9-Max MTT</span>
+          </div>
+          
+          <div class="flex items-center justify-center py-2">
+            <div id="quiz-hero-hand" class="text-2xl font-black font-mono tracking-widest text-amber-400 bg-slate-900 px-4 py-2 rounded-lg border border-slate-700 shadow-inner">
+              --
+            </div>
+          </div>
+
+          <p id="quiz-question" class="text-xs text-slate-300 text-center leading-relaxed">
+            --
+          </p>
+        </div>
+
+        <!-- Action Choices -->
+        <div id="quiz-actions" class="grid grid-cols-2 gap-2.5">
+          <button onclick="handleQuizAnswer('FOLD')" class="py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-bold text-slate-200 transition">
+            棄牌 (Fold)
+          </button>
+          <button onclick="handleQuizAnswer('CALL')" class="py-2.5 bg-blue-900 hover:bg-blue-800 border border-blue-700 rounded-lg text-xs font-bold text-blue-200 transition">
+            平跟 (Call)
+          </button>
+          <button onclick="handleQuizAnswer('RAISE')" class="py-2.5 bg-red-900 hover:bg-red-800 border border-red-700 rounded-lg text-xs font-bold text-red-200 transition">
+            加注 (Raise / 3B)
+          </button>
+          <button onclick="handleQuizAnswer('SHOVE')" class="py-2.5 bg-amber-900 hover:bg-amber-800 border border-amber-700 rounded-lg text-xs font-bold text-amber-200 transition">
+            全下 (All-in)
+          </button>
+        </div>
+
+        <!-- Feedback & Review -->
+        <div id="quiz-feedback" class="hidden bg-slate-950 p-3.5 rounded-lg border border-slate-800 text-xs flex flex-col gap-2">
+          <div id="quiz-feedback-title" class="font-bold text-emerald-400">回答正確！</div>
+          <p id="quiz-feedback-desc" class="text-slate-400 leading-relaxed text-[11px]">--</p>
+          <button onclick="generateNextQuiz()" class="mt-2 w-full py-2 bg-blue-600 hover:bg-blue-500 rounded text-white font-medium transition text-xs">
+            下一題 (Next Hand)
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script>
+    // --- 1. CORE DATA STRUCTURES & RANKS ---
+    const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
+    
+    // Hand Grid matrix 13x13 labels
+    const MATRIX_LABELS = [];
+    for (let r = 0; r < 13; r++) {
+      for (let c = 0; c < 13; c++) {
+        if (r === c) {
+          MATRIX_LABELS.push(RANKS[r] + RANKS[c]); // Pair
+        } else if (r < c) {
+          MATRIX_LABELS.push(RANKS[r] + RANKS[c] + 's'); // Suited
+        } else {
+          MATRIX_LABELS.push(RANKS[c] + RANKS[r] + 'o'); // Offsuit
+        }
+      }
+    }
+
+    function getCombos(label) {
+      if (label.length === 2) return 6;
+      if (label.endsWith('s')) return 4;
+      return 12;
+    }
+
+    function parseRangeNotation(inputStr) {
+      const set = new Set();
+      const parts = inputStr.split(',').map(s => s.trim()).filter(Boolean);
+      
+      parts.forEach(token => {
+        if (token.endsWith('+')) {
+          const base = token.slice(0, -1);
+          if (base.length === 2 && base[0] === base[1]) {
+            const idx = RANKS.indexOf(base[0]);
+            for (let i = idx; i >= 0; i--) set.add(RANKS[i] + RANKS[i]);
+          } else if (base.endsWith('s')) {
+            const h1 = base[0], h2 = base[1];
+            const i1 = RANKS.indexOf(h1), i2 = RANKS.indexOf(h2);
+            for (let i = i2; i > i1; i--) set.add(h1 + RANKS[i] + 's');
+          } else if (base.endsWith('o')) {
+            const h1 = base[0], h2 = base[1];
+            const i1 = RANKS.indexOf(h1), i2 = RANKS.indexOf(h2);
+            for (let i = i2; i > i1; i--) set.add(h1 + RANKS[i] + 'o');
+          }
+        } else {
+          set.add(token);
+        }
+      });
+      return set;
+    }
+
+    // --- 2. GTO PRESET DATABASE ---
+    const GTO_PRESETS = {
+      '40_LJ': {
+        name: '40BB LJ Open (約 16%)',
+        desc: '前位開牌注重手牌硬度與被 3-Bet 後的抗性，涵蓋全部 77+、高張兩張、ATs+、KJs+ 及微量 A5s/A4s 輪子詐唬。',
+        hands: parseRangeNotation('77+, AJs+, KQs, QJs, JTs, T9s, 98s, AQo+, A5s, A4s, KJs, QTs, ATs')
+      },
+      '40_HJ': {
+        name: '40BB HJ Open (約 20%)',
+        desc: '增加同花高牌與中型連張 (87s, 76s)，開始加入 A9s, KTs, QTs 等具備翻後可玩性之邊緣牌。',
+        hands: parseRangeNotation('66+, ATs+, A5s-A3s, KTs+, QTs+, JTs, T9s, 98s, 87s, 76s, AJo+, KQo')
+      },
+      '40_CO': {
+        name: '40BB CO Open (約 28%)',
+        desc: '位置優勢擴大，納入全部 22+、更多同花 Ax (A2s+)、K8s+、同花隔張及 ATo, KTo 寬開牌。',
+        hands: parseRangeNotation('22+, A2s+, K8s+, Q9s+, J9s+, T8s+, 97s+, 86s+, 75s+, 65s, ATo+, KTo+, QJo')
+      },
+      '40_BTN': {
+        name: '40BB BTN Open (約 45%)',
+        desc: '具有絕對後動權與盲注死錢，開出近 45% 的超寬範圍：幾乎所有同花牌、任意 Ax、K4o+、Q7o+ 及連張。',
+        hands: parseRangeNotation('22+, A2s+, K2s+, Q4s+, J6s+, T6s+, 95s+, 85s+, 74s+, 63s+, 53s+, 43s, A2o+, K7o+, Q8o+, J8o+, T8o+, 98o, 87o')
+      },
+      '40_SB_def': {
+        name: '40BB SB 面對 Open (3B / Call 抵抗)',
+        desc: '無位置優勢，以極化 3-Bet 為主 (QQ+, AK, A2s-A5s bluff)，並用 99-JJ, AQs, KQs 等高勝率牌平跟防守。',
+        hands: parseRangeNotation('88+, ATs+, KTs+, QJs, JTs, AJo+, KQo, A5s, A4s, A3s')
+      },
+      '40_BB_def': {
+        name: '40BB BB 面對 2x Min-Raise 防守 (約 68%)',
+        desc: '底池提供極佳賠率 (只需補 1BB 爭取 5.5BB)，必須極寬防守以維持 MDF，除極端雜色垃圾牌外皆需 Call 或 3-Bet。',
+        hands: parseRangeNotation('22+, A2s+, K2s+, Q2s+, J2s+, T4s+, 95s+, 84s+, 74s+, 63s+, 52s+, 42s+, 32s, A2o+, K5o+, Q7o+, J7o+, T7o+, 97o+, 86o+, 76o')
+      },
+      '30_LJ': {
+        name: '30BB LJ Open (約 14%)',
+        desc: '受 3-Bet Shove 威脅，開始收緊小對子 (22-55 剔除)，只保留高牌硬度強韌的手牌。',
+        hands: parseRangeNotation('77+, ATs+, KTs+, QJs, JTs, AJo+, KQo')
+      },
+      '30_BTN': {
+        name: '30BB BTN Open (約 40%)',
+        desc: '仍維持強勢偷盲，但略微修剪邊緣弱雜色 (如 K5o, Q7o)，防範大盲短碼 Reshove。',
+        hands: parseRangeNotation('22+, A2s+, K3s+, Q6s+, J7s+, T7s+, 96s+, 86s+, 75s+, 65s, A2o+, K8o+, Q9o+, J9o+, T9o')
+      },
+      '25_BTN': {
+        name: '25BB BTN Open (約 36%)',
+        desc: 'Min-Raise 後必須具備清晰的面對 Reshove 處置方案。投機性弱隔張開始剃除。',
+        hands: parseRangeNotation('22+, A2s+, K5s+, Q7s+, J8s+, T8s+, 97s+, 87s, A3o+, K9o+, QTo+, JTo')
+      },
+      '25_BB_def': {
+        name: '25BB BB 防守範圍 (約 58%)',
+        desc: '因有效籌碼變淺，翻後操作空間變窄，弱雜色高牌防守頻率降低，注重同花成牌與對子。',
+        hands: parseRangeNotation('22+, A2s+, K2s+, Q4s+, J5s+, T6s+, 96s+, 85s+, 75s+, 64s+, 54s, A2o+, K8o+, Q9o+, J9o+, T8o+')
+      },
+      '20_BTN': {
+        name: '20BB BTN Open (約 32%)',
+        desc: '處於 Min-Raise / Fold 的危險臨界。小對子 (22-55) 部分轉為直接 Push 或棄牌。',
+        hands: parseRangeNotation('55+, A2s+, K7s+, Q8s+, J8s+, T8s+, 98s, A7o+, KTo+, QTo+, JTo')
+      },
+      '15_BTN': {
+        name: '15BB BTN Open / Shove (約 28%)',
+        desc: 'Push/Fold 門檻深度。22-77, A2s-A9s, K9s+, QTs, KJo+ 傾向直接 Open Shove 收死錢；AA-QQ, AK 可 Min-Raise 引誘。',
+        hands: parseRangeNotation('22+, A2s+, K8s+, Q9s+, J9s+, T9s, A8o+, KTo+, QJo')
+      }
+    };
+
+    // --- 3. RUNTIME STATE ---
+    let currentTab = 'counter';
+    let currentMatrixData = {}; // label -> color
+    let currentBrushColor = '#ef4444';
+    let currentBrushLabel = '3-Bet / 4-Bet';
+    let isMouseDown = false;
+
+    // Counter Runtime State
+    let counterCounts = {}; // label -> count
+    let counterHistory = []; // array of entries:
+                             // type: 'hand' | 'text' | 'table_state'
+                             // { type, hand, action, text, bb, stack, bbCount, time, timestamp }
+    let counterMode = 'add'; // 'add' or 'sub'
+
+    // Trainer State
+    let quizCurrent = null;
+    let quizTotal = 0;
+    let quizCorrect = 0;
+    let isFogActive = false;
+
+    // --- 4. INITIALIZATION ---
+    window.addEventListener('DOMContentLoaded', () => {
+      loadStorageData();
+      initMatrixDOM();
+      setupMouseEvents();
+
+      // Retrieve last used tab from localStorage, default to 'counter'
+      const lastTab = localStorage.getItem('poker_lab_last_tab') || 'counter';
+      switchTab(lastTab);
+    });
+
+    function initMatrixDOM() {
+      const container = document.getElementById('poker-matrix');
+      container.innerHTML = '';
+      
+      MATRIX_LABELS.forEach(label => {
+        const div = document.createElement('div');
+        div.className = 'cell bg-slate-900 border border-slate-800 text-slate-300';
+        div.id = 'cell-' + label;
+        div.dataset.hand = label;
+        
+        const textSpan = document.createElement('span');
+        textSpan.textContent = label;
+        textSpan.id = 'text-' + label;
+        div.appendChild(textSpan);
+
+        const badgeSpan = document.createElement('span');
+        badgeSpan.className = 'badge-count hidden';
+        badgeSpan.id = 'badge-' + label;
+        div.appendChild(badgeSpan);
+        
+        div.addEventListener('click', () => handleCellClick(label));
+        div.addEventListener('mouseenter', () => handleCellHover(label));
+        container.appendChild(div);
+      });
+    }
+
+    function setupMouseEvents() {
+      window.addEventListener('mousedown', () => isMouseDown = true);
+      window.addEventListener('mouseup', () => isMouseDown = false);
+    }
+
+    // --- 5. TAB SWITCHING ---
+    function switchTab(tabId) {
+      currentTab = tabId;
+      localStorage.setItem('poker_lab_last_tab', tabId);
+
+      const allTabs = ['counter', 'paint', 'presets', 'diff', 'trainer'];
+      allTabs.forEach(t => {
+        const btn = document.getElementById(`tab-btn-${t}`);
+        const panel = document.getElementById(`panel-${t}`);
+        if (!btn || !panel) return;
+
+        if (t === tabId) {
+          btn.className = 'px-3 py-1.5 rounded-md font-medium text-white bg-blue-600 transition';
+          panel.classList.remove('hidden');
+        } else {
+          btn.className = 'px-3 py-1.5 rounded-md font-medium text-slate-400 hover:text-white transition';
+          panel.classList.add('hidden');
+        }
+      });
+
+      const fog = document.getElementById('trainer-fog');
+      if (tabId === 'trainer') {
+        fog.classList.remove('hidden');
+        isFogActive = true;
+        if (!quizCurrent) generateNextQuiz();
+      } else {
+        fog.classList.add('hidden');
+        isFogActive = false;
+      }
+
+      const titleEl = document.getElementById('matrix-title');
+      const footerTip = document.getElementById('matrix-footer-tip');
+      
+      if (tabId === 'counter') {
+        titleEl.textContent = '手牌矩陣 (13×13) - 拿牌計數中';
+        footerTip.textContent = '點選手牌單次增加拿牌數；支援右側「倒扣」或「取消」撤銷。';
+        renderCounterMatrix();
+      } else if (tabId === 'paint') {
+        titleEl.textContent = '手牌矩陣 (13×13) - 自由上色中';
+        footerTip.textContent = '對角線: 對子 | 右上: 同花 (s) | 左下: 雜色 (o)';
+        hideAllBadges();
+        refreshPaintMatrix();
+      } else if (tabId === 'presets') {
+        titleEl.textContent = '手牌矩陣 (13×13) - GTO 範圍檢視';
+        footerTip.textContent = '對角線: 對子 | 右上: 同花 (s) | 左下: 雜色 (o)';
+        hideAllBadges();
+        renderActivePreset();
+      } else if (tabId === 'diff') {
+        titleEl.textContent = '手牌矩陣 (13×13) - 雙範圍對比 (Diff)';
+        footerTip.textContent = '綠色: 重疊 | 藍色: 僅A | 黃色: 僅B';
+        hideAllBadges();
+        runRangeDiff();
+      } else if (tabId === 'trainer') {
+        titleEl.textContent = '手牌矩陣 (13×13) - 決策測驗';
+        footerTip.textContent = '完成右側測驗後解鎖理論建議範圍與該底牌高亮。';
+        hideAllBadges();
+      }
+    }
+
+    function hideAllBadges() {
+      MATRIX_LABELS.forEach(label => {
+        const badge = document.getElementById('badge-' + label);
+        if (badge) badge.classList.add('hidden');
+      });
+    }
+
+    function handleCellClick(label) {
+      if (currentTab === 'counter') {
+        if (counterMode === 'add') {
+          addHandCount(label);
+        } else {
+          subHandCount(label);
+        }
+      } else if (currentTab === 'paint') {
+        paintCell(label);
+      }
+    }
+
+    function handleCellHover(label) {
+      if (currentTab === 'paint' && isMouseDown) {
+        paintCell(label);
+      }
+    }
+
+    // --- 6. HAND FREQUENCY COUNTER LOGIC ---
+    function setCounterMode(mode) {
+      counterMode = mode;
+      const addBtn = document.getElementById('counter-mode-add');
+      const subBtn = document.getElementById('counter-mode-sub');
+      if (mode === 'add') {
+        addBtn.className = 'py-2 rounded-lg font-bold bg-blue-600 text-white border border-blue-500 transition flex items-center justify-center gap-1.5';
+        subBtn.className = 'py-2 rounded-lg font-bold bg-slate-950 text-slate-400 border border-slate-800 hover:text-white transition flex items-center justify-center gap-1.5';
+      } else {
+        subBtn.className = 'py-2 rounded-lg font-bold bg-rose-600 text-white border border-rose-500 transition flex items-center justify-center gap-1.5';
+        addBtn.className = 'py-2 rounded-lg font-bold bg-slate-950 text-slate-400 border border-slate-800 hover:text-white transition flex items-center justify-center gap-1.5';
+      }
+    }
+
+    function getFormattedTime() {
+      const now = new Date();
+      const pad = (n) => String(n).padStart(2, '0');
+      return `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+    }
+
+    function addHandCount(label) {
+      counterCounts[label] = (counterCounts[label] || 0) + 1;
+      const timeStr = getFormattedTime();
+      counterHistory.push({
+        type: 'hand',
+        hand: label,
+        action: 'add',
+        time: timeStr,
+        timestamp: Date.now()
+      });
+      saveStorageData();
+      renderCounterMatrix();
+    }
+
+    function subHandCount(label) {
+      if (!counterCounts[label] || counterCounts[label] <= 0) return;
+      counterCounts[label]--;
+      if (counterCounts[label] === 0) delete counterCounts[label];
+      const timeStr = getFormattedTime();
+      counterHistory.push({
+        type: 'hand',
+        hand: label,
+        action: 'sub',
+        time: timeStr,
+        timestamp: Date.now()
+      });
+      saveStorageData();
+      renderCounterMatrix();
+    }
+
+    // NEW: Submit Custom Free Text to Log Stream
+    function submitCustomLogText() {
+      const inputEl = document.getElementById('log-custom-text');
+      const text = inputEl.value.trim();
+      if (!text) {
+        inputEl.focus();
+        return;
+      }
+      const timeStr = getFormattedTime();
+      counterHistory.push({
+        type: 'text',
+        text: text,
+        time: timeStr,
+        timestamp: Date.now()
+      });
+      inputEl.value = ''; // clear input on success
+      saveStorageData();
+      renderCounterMatrix();
+    }
+
+    // NEW: Submit Current BB & Stack to Log Stream
+    function submitTableStateLog() {
+      const bbEl = document.getElementById('log-bb-size');
+      const stackEl = document.getElementById('log-stack-size');
+      const bbVal = bbEl.value.trim();
+      const stackVal = stackEl.value.trim();
+
+      if (!bbVal && !stackVal) {
+        alert('請至少輸入大盲金額或籌碼量！');
+        bbEl.focus();
+        return;
+      }
+
+      // Calculate BB count if both numeric
+      let bbCountStr = '';
+      const numBB = parseFloat(bbVal);
+      const numStack = parseFloat(stackVal);
+      if (!isNaN(numBB) && !isNaN(numStack) && numBB > 0) {
+        bbCountStr = `${(numStack / numBB).toFixed(1)} BB`;
+      }
+
+      const timeStr = getFormattedTime();
+      counterHistory.push({
+        type: 'table_state',
+        bb: bbVal || '-',
+        stack: stackVal || '-',
+        bbCount: bbCountStr,
+        time: timeStr,
+        timestamp: Date.now()
+      });
+
+      saveStorageData();
+      renderCounterMatrix();
+    }
+
+    // ENHANCED: Undo Last Log (Restores text into textbox if last was free text!)
+    function undoLastCounterLog() {
+      if (counterHistory.length === 0) {
+        alert('目前無可撤銷之操作紀錄！');
+        return;
+      }
+      const last = counterHistory.pop();
+
+      if (!last.type || last.type === 'hand') {
+        // Hand count revert
+        if (last.action === 'add') {
+          if (counterCounts[last.hand]) {
+            counterCounts[last.hand]--;
+            if (counterCounts[last.hand] <= 0) delete counterCounts[last.hand];
+          }
+        } else if (last.action === 'sub') {
+          counterCounts[last.hand] = (counterCounts[last.hand] || 0) + 1;
+        }
+      } else if (last.type === 'text') {
+        // Text revert: restore content into input text box!
+        const inputEl = document.getElementById('log-custom-text');
+        inputEl.value = last.text;
+        inputEl.focus();
+      } else if (last.type === 'table_state') {
+        // Table state revert: optionally refill inputs
+        if (last.bb && last.bb !== '-') document.getElementById('log-bb-size').value = last.bb;
+        if (last.stack && last.stack !== '-') document.getElementById('log-stack-size').value = last.stack;
+      }
+
+      saveStorageData();
+      renderCounterMatrix();
+    }
+
+    function clearAllCounterData() {
+      if (confirm('確定要清空所有手牌拿牌次數與動態流水帳紀錄嗎？')) {
+        counterCounts = {};
+        counterHistory = [];
+        saveStorageData();
+        renderCounterMatrix();
+      }
+    }
+
+    function renderCounterMatrix() {
+      if (currentTab !== 'counter') return;
+
+      let totalHands = 0;
+      let maxCount = 0;
+      for (const count of Object.values(counterCounts)) {
+        totalHands += count;
+        if (count > maxCount) maxCount = count;
+      }
+
+      MATRIX_LABELS.forEach(label => {
+        const el = document.getElementById('cell-' + label);
+        const badge = document.getElementById('badge-' + label);
+        const count = counterCounts[label] || 0;
+
+        if (count > 0) {
+          const ratio = maxCount > 0 ? (count / maxCount) : 0;
+          if (ratio > 0.75) {
+            el.style.backgroundColor = '#b91c1c'; // Red-700
+            el.style.borderColor = '#ef4444';
+          } else if (ratio > 0.45) {
+            el.style.backgroundColor = '#c2410c'; // Orange-700
+            el.style.borderColor = '#f97316';
+          } else if (ratio > 0.2) {
+            el.style.backgroundColor = '#1d4ed8'; // Blue-700
+            el.style.borderColor = '#3b82f6';
+          } else {
+            el.style.backgroundColor = '#1e293b'; // Slate-800
+            el.style.borderColor = '#334155';
+          }
+          el.style.color = '#ffffff';
+          badge.textContent = count;
+          badge.classList.remove('hidden');
+        } else {
+          resetCellDefault(el, label);
+          badge.textContent = '';
+          badge.classList.add('hidden');
+        }
+      });
+
+      document.getElementById('counter-total-badge').textContent = `總發牌數: ${totalHands} 手`;
+      const distinctHands = Object.keys(counterCounts).length;
+      document.getElementById('matrix-stat').textContent = `拿過手牌: ${distinctHands} / 169 種 (共 ${totalHands} 手)`;
+
+      renderCounterLogs();
+      renderCounterTopList(totalHands);
+    }
+
+    function renderCounterLogs() {
+      const container = document.getElementById('counter-log-list');
+      const lastLabel = document.getElementById('counter-last-log');
+
+      if (counterHistory.length === 0) {
+        container.innerHTML = '<div class="text-slate-600 py-3 text-center italic text-xs">點擊左側手牌格子或使用上方按鈕開始紀錄</div>';
+        lastLabel.textContent = '尚未紀錄';
+        return;
+      }
+
+      const latest = counterHistory[counterHistory.length - 1];
+      if (!latest.type || latest.type === 'hand') {
+        const actionName = latest.action === 'add' ? '+1' : '-1';
+        lastLabel.textContent = `最新: [${latest.hand}] ${actionName} (${latest.time})`;
+      } else if (latest.type === 'text') {
+        lastLabel.textContent = `最新文字: "${latest.text.slice(0, 14)}..." (${latest.time})`;
+      } else if (latest.type === 'table_state') {
+        lastLabel.textContent = `最新桌況: BB ${latest.bb} / 碼 ${latest.stack} (${latest.time})`;
+      }
+
+      let html = '';
+      const reversed = [...counterHistory].reverse().slice(0, 35);
+      reversed.forEach(item => {
+        if (!item.type || item.type === 'hand') {
+          const isAdd = item.action === 'add';
+          const colorClass = isAdd ? 'text-emerald-400' : 'text-rose-400';
+          const symbol = isAdd ? '➕ 拿到' : '➖ 倒扣';
+          html += `<div class="flex items-center justify-between py-1 px-1 hover:bg-slate-900 rounded">
+            <span class="flex items-center gap-1.5">
+              <span class="font-bold ${colorClass}">${item.hand}</span>
+              <span class="text-[10px] text-slate-400">(${symbol})</span>
+            </span>
+            <span class="text-slate-500 font-mono text-[10px]">${item.time}</span>
+          </div>`;
+        } else if (item.type === 'text') {
+          html += `<div class="flex items-start justify-between py-1 px-1 hover:bg-slate-900 rounded bg-purple-950/20">
+            <span class="flex items-start gap-1.5 pr-2">
+              <span class="text-purple-400 font-bold">💬</span>
+              <span class="text-purple-200 text-xs break-all">${item.text}</span>
+            </span>
+            <span class="text-slate-500 font-mono text-[10px] whitespace-nowrap">${item.time}</span>
+          </div>`;
+        } else if (item.type === 'table_state') {
+          const bbRatioBadge = item.bbCount ? `<span class="bg-emerald-900 text-emerald-200 px-1 rounded text-[10px] font-bold">${item.bbCount}</span>` : '';
+          html += `<div class="flex items-center justify-between py-1 px-1 hover:bg-slate-900 rounded bg-emerald-950/20">
+            <span class="flex items-center gap-1.5">
+              <span class="text-emerald-400 font-bold">🪙</span>
+              <span class="text-slate-200 text-xs font-mono">BB: ${item.bb} | 碼: ${item.stack}</span>
+              ${bbRatioBadge}
+            </span>
+            <span class="text-slate-500 font-mono text-[10px]">${item.time}</span>
+          </div>`;
+        }
+      });
+      container.innerHTML = html;
+    }
+
+    function renderCounterTopList(totalHands) {
+      const container = document.getElementById('counter-top-list');
+      const sorted = Object.entries(counterCounts).sort((a, b) => b[1] - a[1]);
+
+      if (sorted.length === 0) {
+        container.innerHTML = '尚無紀錄';
+        return;
+      }
+
+      let html = '';
+      sorted.slice(0, 5).forEach(([hand, count], idx) => {
+        const pct = totalHands > 0 ? ((count / totalHands) * 100).toFixed(1) : 0;
+        html += `<div class="flex justify-between items-center">
+          <span class="text-slate-200 font-bold">#${idx + 1} ${hand}</span>
+          <span class="text-cyan-400 font-mono">${count} 次 (${pct}%)</span>
+        </div>`;
+      });
+      container.innerHTML = html;
+    }
+
+    // --- 7. FREE PAINTER LOGIC ---
+    function setBrush(color, label) {
+      currentBrushColor = color;
+      currentBrushLabel = label;
+    }
+
+    function setCustomBrush(color) {
+      currentBrushColor = color;
+      const customName = document.getElementById('custom-color-label').value.trim() || '自訂色彩';
+      currentBrushLabel = customName;
+    }
+
+    function paintCell(label) {
+      const el = document.getElementById('cell-' + label);
+      if (currentBrushColor === 'transparent') {
+        delete currentMatrixData[label];
+        resetCellDefault(el, label);
+      } else {
+        currentMatrixData[label] = {
+          color: currentBrushColor,
+          label: currentBrushLabel
+        };
+        el.style.backgroundColor = currentBrushColor;
+        el.style.color = '#ffffff';
+        el.style.borderColor = currentBrushColor;
+      }
+      saveStorageData();
+      updatePaintStats();
+    }
+
+    function refreshPaintMatrix() {
+      MATRIX_LABELS.forEach(label => {
+        const el = document.getElementById('cell-' + label);
+        if (currentMatrixData[label]) {
+          el.style.backgroundColor = currentMatrixData[label].color;
+          el.style.color = '#ffffff';
+          el.style.borderColor = currentMatrixData[label].color;
+        } else {
+          resetCellDefault(el, label);
+        }
+      });
+      updatePaintStats();
+    }
+
+    function updatePaintStats() {
+      const counts = {};
+      let totalCombos = 0;
+
+      for (const [hand, val] of Object.entries(currentMatrixData)) {
+        const c = getCombos(hand);
+        totalCombos += c;
+        if (!counts[val.label]) {
+          counts[val.label] = { combos: 0, color: val.color };
+        }
+        counts[val.label].combos += c;
+      }
+
+      const container = document.getElementById('paint-breakdown');
+      if (totalCombos === 0) {
+        container.innerHTML = '<span class="text-slate-500">尚無上色牌型</span>';
+        document.getElementById('matrix-stat').textContent = `入池: 0 / 1326 (0.0%)`;
+        return;
+      }
+
+      let html = '';
+      for (const [lbl, data] of Object.entries(counts)) {
+        const p = ((data.combos / 1326) * 100).toFixed(1);
+        html += `<div class="flex items-center justify-between">
+          <span class="flex items-center gap-1.5">
+            <span class="w-2.5 h-2.5 rounded-sm inline-block" style="background:${data.color}"></span>
+            ${lbl}
+          </span>
+          <span>${data.combos} 組 (${p}%)</span>
+        </div>`;
+      }
+      container.innerHTML = html;
+      const totalPct = ((totalCombos / 1326) * 100).toFixed(1);
+      document.getElementById('matrix-stat').textContent = `自訂標註: ${totalCombos} / 1326 (${totalPct}%)`;
+    }
+
+    // --- 8. PRESETS LOGIC ---
+    function renderActivePreset() {
+      if (currentTab !== 'presets') return;
+      const depth = document.getElementById('preset-depth').value;
+      const pos = document.getElementById('preset-pos').value;
+      
+      const key = `${depth}_${pos}`;
+      const fallbackKey = `40_${pos}`;
+      const preset = GTO_PRESETS[key] || GTO_PRESETS[fallbackKey] || GTO_PRESETS['40_BTN'];
+
+      document.getElementById('preset-desc-title').textContent = preset.name;
+      document.getElementById('preset-desc-body').textContent = preset.desc;
+
+      let inCombos = 0;
+      MATRIX_LABELS.forEach(label => {
+        const el = document.getElementById('cell-' + label);
+        if (preset.hands.has(label)) {
+          inCombos += getCombos(label);
+          el.style.backgroundColor = '#2563eb';
+          el.style.color = '#ffffff';
+          el.style.borderColor = '#3b82f6';
+        } else {
+          resetCellDefault(el, label);
+        }
+      });
+
+      const pct = ((inCombos / 1326) * 100).toFixed(1);
+      document.getElementById('matrix-stat').textContent = `入池: ${inCombos} / 1326 (${pct}%)`;
+    }
+
+    // --- 9. RANGE DIFF LOGIC ---
+    function runRangeDiff() {
+      if (currentTab !== 'diff') return;
+      const keyA = document.getElementById('diff-range-a').value;
+      const keyB = document.getElementById('diff-range-b').value;
+
+      const setA = (GTO_PRESETS[keyA] || GTO_PRESETS['40_BTN']).hands;
+      const setB = (GTO_PRESETS[keyB] || GTO_PRESETS['15_BTN']).hands;
+
+      let overlap = 0, onlyA = 0, onlyB = 0;
+
+      MATRIX_LABELS.forEach(label => {
+        const el = document.getElementById('cell-' + label);
+        const inA = setA.has(label);
+        const inB = setB.has(label);
+        const combos = getCombos(label);
+
+        if (inA && inB) {
+          overlap += combos;
+          el.style.backgroundColor = '#10b981';
+          el.style.color = '#ffffff';
+          el.style.borderColor = '#059669';
+        } else if (inA && !inB) {
+          onlyA += combos;
+          el.style.backgroundColor = '#2563eb';
+          el.style.color = '#ffffff';
+          el.style.borderColor = '#1d4ed8';
+        } else if (!inA && inB) {
+          onlyB += combos;
+          el.style.backgroundColor = '#f59e0b';
+          el.style.color = '#ffffff';
+          el.style.borderColor = '#d97706';
+        } else {
+          resetCellDefault(el, label);
+        }
+      });
+
+      document.getElementById('diff-stats').textContent = 
+        `重疊: ${overlap} 組 | 僅A: ${onlyA} 組 | 僅B: ${onlyB} 組`;
+      document.getElementById('matrix-stat').textContent = `雙範圍對比分析中`;
+    }
+
+    // --- 10. TRAINER LOGIC ---
+    const QUIZ_BANK = [
+      {
+        depth: '40 BB',
+        pos: 'BTN',
+        actionContext: '前面所有人棄牌到你',
+        hand: 'K5s',
+        correct: 'RAISE',
+        gtoRangeKey: '40_BTN',
+        exp: '在 40BB 的 BTN 位置，擁有絕對位置與盲注死錢，K5s 屬於標準 45% RFI 開牌範圍內，應 Min-Raise 偷盲。'
+      },
+      {
+        depth: '30 BB',
+        pos: 'LJ',
+        actionContext: '前面無人入池',
+        hand: '22',
+        correct: 'FOLD',
+        gtoRangeKey: '30_LJ',
+        exp: '在 30BB 深度且處於前位 LJ，小對子 22-55 投三條 Set Mining 賠率嚴重不足，且面臨後方 3B-Shove 威脅，應標準棄牌。'
+      },
+      {
+        depth: '15 BB',
+        pos: 'BTN',
+        actionContext: '前面無人入池，盲注為均碼',
+        hand: '66',
+        correct: 'SHOVE',
+        gtoRangeKey: '15_BTN',
+        exp: '15BB 短碼在 BTN 拿中小型口袋對子 (22-77)，直接 Open Shove 全下可最大化棄牌率 (Fold Equity) 並防範翻後兩難。'
+      },
+      {
+        depth: '40 BB',
+        pos: 'BB',
+        actionContext: 'BTN Min-Raise 2BB，SB 棄牌',
+        hand: '97s',
+        correct: 'CALL',
+        gtoRangeKey: '40_BB_def',
+        exp: 'BB 補 1BB 即可爭取 5.5BB 底池，97s 具備極強成花成順潛力，是標準賠率跟注牌。'
+      },
+      {
+        depth: '25 BB',
+        pos: 'BTN',
+        actionContext: 'CO 開牌 2.1BB',
+        hand: 'A5s',
+        correct: 'RAISE',
+        gtoRangeKey: '25_BTN',
+        exp: 'A5s 具備絕佳 A 阻擋牌與同花輪子順潛力，適合在此發動 3-Bet 半詐唬施壓。'
+      }
+    ];
+
+    function generateNextQuiz() {
+      const q = QUIZ_BANK[Math.floor(Math.random() * QUIZ_BANK.length)];
+      quizCurrent = q;
+
+      const fog = document.getElementById('trainer-fog');
+      fog.classList.remove('hidden');
+      isFogActive = true;
+
+      MATRIX_LABELS.forEach(label => resetCellDefault(document.getElementById('cell-' + label), label));
+
+      document.getElementById('quiz-meta').textContent = `${q.depth} 錦標賽 | 玩家位置: ${q.pos}`;
+      document.getElementById('quiz-hero-hand').textContent = q.hand;
+      document.getElementById('quiz-question').textContent = `桌況：${q.actionContext}。手持 [${q.hand}]，你的最佳行動是？`;
+
+      document.getElementById('quiz-feedback').classList.add('hidden');
+      document.getElementById('quiz-actions').classList.remove('hidden');
+    }
+
+    function handleQuizAnswer(action) {
+      if (!quizCurrent) return;
+      quizTotal++;
+      const isCorrect = (action === quizCurrent.correct);
+      if (isCorrect) quizCorrect++;
+
+      document.getElementById('trainer-score').textContent = `得分: ${quizCorrect} / ${quizTotal}`;
+      document.getElementById('trainer-fog').classList.add('hidden');
+      isFogActive = false;
+
+      const rangeSet = (GTO_PRESETS[quizCurrent.gtoRangeKey] || GTO_PRESETS['40_BTN']).hands;
+      MATRIX_LABELS.forEach(label => {
+        const el = document.getElementById('cell-' + label);
+        if (label === quizCurrent.hand) {
+          el.style.backgroundColor = '#ec4899';
+          el.style.color = '#ffffff';
+          el.style.borderColor = '#f43f5e';
+        } else if (rangeSet.has(label)) {
+          el.style.backgroundColor = '#2563eb';
+          el.style.color = '#ffffff';
+          el.style.borderColor = '#3b82f6';
+        } else {
+          resetCellDefault(el, label);
+        }
+      });
+
+      const fbBox = document.getElementById('quiz-feedback');
+      const fbTitle = document.getElementById('quiz-feedback-title');
+      const fbDesc = document.getElementById('quiz-feedback-desc');
+
+      fbBox.classList.remove('hidden');
+      document.getElementById('quiz-actions').classList.add('hidden');
+
+      if (isCorrect) {
+        fbTitle.textContent = '✅ 決策正確！';
+        fbTitle.className = 'font-bold text-emerald-400';
+      } else {
+        fbTitle.textContent = `❌ 判斷失誤 (建議行動: ${quizCurrent.correct})`;
+        fbTitle.className = 'font-bold text-rose-400';
+      }
+      fbDesc.textContent = quizCurrent.exp;
+    }
+
+    function toggleFogManual() {
+      const fog = document.getElementById('trainer-fog');
+      isFogActive = !isFogActive;
+      if (isFogActive) {
+        fog.classList.remove('hidden');
+      } else {
+        fog.classList.add('hidden');
+      }
+    }
+
+    // --- 11. STORAGE & UTILITIES ---
+    function resetCellDefault(el, label) {
+      el.style.backgroundColor = '#020617';
+      el.style.color = '#64748b';
+      el.style.borderColor = '#1e293b';
+      if (label.length === 2) {
+        el.style.color = '#94a3b8';
+      }
+    }
+
+    function clearCurrentMatrix() {
+      if (currentTab === 'paint') {
+        currentMatrixData = {};
+        saveStorageData();
+        refreshPaintMatrix();
+      } else if (currentTab === 'counter') {
+        clearAllCounterData();
+      } else {
+        MATRIX_LABELS.forEach(label => resetCellDefault(document.getElementById('cell-' + label), label));
+        document.getElementById('matrix-stat').textContent = `入池: 0 / 1326 (0.0%)`;
+      }
+    }
+
+    function saveNotes() {
+      const val = document.getElementById('study-notes').value;
+      localStorage.setItem('poker_lab_study_notes', val);
+    }
+
+    function saveStorageData() {
+      localStorage.setItem('poker_lab_matrix_paint', JSON.stringify(currentMatrixData));
+      localStorage.setItem('poker_lab_counter_counts', JSON.stringify(counterCounts));
+      localStorage.setItem('poker_lab_counter_history', JSON.stringify(counterHistory));
+    }
+
+    function loadStorageData() {
+      const savedNotes = localStorage.getItem('poker_lab_study_notes');
+      if (savedNotes && document.getElementById('study-notes')) {
+        document.getElementById('study-notes').value = savedNotes;
+      }
+      const savedPaint = localStorage.getItem('poker_lab_matrix_paint');
+      if (savedPaint) {
+        try { currentMatrixData = JSON.parse(savedPaint); } catch (e) {}
+      }
+      const savedCounts = localStorage.getItem('poker_lab_counter_counts');
+      if (savedCounts) {
+        try { counterCounts = JSON.parse(savedCounts); } catch (e) {}
+      }
+      const savedHist = localStorage.getItem('poker_lab_counter_history');
+      if (savedHist) {
+        try { counterHistory = JSON.parse(savedHist); } catch (e) {}
+      }
+    }
+
+    function copyCurrentMatrixHands() {
+      const depth = document.getElementById('preset-depth').value;
+      const pos = document.getElementById('preset-pos').value;
+      const key = `${depth}_${pos}`;
+      const preset = GTO_PRESETS[key] || GTO_PRESETS['40_BTN'];
+      const str = Array.from(preset.hands).join(', ');
+      navigator.clipboard.writeText(str).then(() => {
+        alert('已複製手牌範圍代碼至剪貼簿！');
+      });
+    }
+  </script>
+</body>
+</html>
