@@ -1,0 +1,13 @@
+const QUIZ_BANK = [
+  { depth: '40 BB', pos: 'BTN', actionContext: '前面所有人棄牌到你', hand: 'K5s', correct: 'RAISE', gtoRangeKey: '40_BTN', exp: '在 40BB 的 BTN 位置，擁有絕對位置與盲注死錢，K5s 屬於標準 45% RFI 開牌範圍內，應 Min-Raise 偷盲。' },
+  { depth: '30 BB', pos: 'LJ', actionContext: '前面無人入池', hand: '22', correct: 'FOLD', gtoRangeKey: '30_LJ', exp: '在 30BB 深度且處於前位 LJ，小對子 22-55 投三條 Set Mining 賠率嚴重不足，且面臨後方 3B-Shove 威脅，應標準棄牌。' },
+  { depth: '40 BB', pos: 'BTN', actionContext: 'CO 開牌 2.2BB，Hero 在 BTN 手持 A4s', hand: 'A4s', correct: 'RAISE', gtoRangeKey: '40_BTN_3B_CO', exp: '在有利位置（IP）對抗 CO 開牌，A4s 具備完美的 A 阻擋牌與輪子順潛力，是標準的 3-Bet 半詐唬牌型。' },
+  { depth: '40 BB', pos: 'BB', actionContext: 'BTN 開牌 2.0BB，SB 棄牌，Hero 在 BB 手持 AJo', hand: 'AJo', correct: 'CALL', gtoRangeKey: '40_BB_def_BTN', exp: '在 40BB 深度下，AJo 在大盲面對 BTN 開牌擁有絕佳底池賠率，以 Flat Call 平跟防守為主，避免 3-Bet 被 4-Bet 陷入兩難。' },
+  { depth: '20 BB', pos: 'BB', actionContext: 'BTN 開牌 2.0BB，SB 棄牌，Hero 在 BB 手持 44', hand: '44', correct: 'SHOVE', gtoRangeKey: '20_BB_shove_BTN', exp: '在 20BB 深度面對寬開牌的 BTN，小對子 22-88 直接發動 20BB 3-Bet Shove 反推全下，能賺取大量棄牌率（Fold Equity）。' },
+  { depth: '40 BB', pos: 'BTN', actionContext: 'Hero 在 BTN 開牌 2.2BB，大盲 BB 激進 3-Bet 至 9BB', hand: 'AKo', correct: 'RAISE', gtoRangeKey: '40_BTN_4B_BB', exp: '手持頂級兩張大牌 AKo，在此深度對抗寬 3-Bet 的盲位應執行 4-Bet，被 5-Bet 時也能無痛 Call-off 跑馬。' },
+  { depth: '40 BB', pos: 'BTN', actionContext: 'Hero 在 BTN 開牌 2.2BB，大盲 BB 3-Bet 至 9BB，Hero 手持 A5s', hand: 'A5s', correct: 'RAISE', gtoRangeKey: '40_BTN_4B_BB', exp: 'A5s 阻擋了對手的 AA 與 AK 組合，是 GTO 中極經典的 4-Bet 半詐唬牌型！' },
+  { depth: '40 BB', pos: 'CO', actionContext: 'Hero 在 CO 開牌 2.3BB，BTN 緊實玩家 3-Bet 至 8BB，Hero 手持 KQo', hand: 'KQo', correct: 'FOLD', gtoRangeKey: '40_CO_4B_BTN', exp: '在不利位置（OOP）面對 BTN 的強勢 3-Bet，KQo 處於嚴重的反向主導危機，應標準棄牌。' },
+  { depth: '25 BB', pos: 'CO', actionContext: '賽事進入泡沫期（還差 1 人進圈），按鈕 BTN 是全桌 CL，前面無人入池', hand: 'KTo', correct: 'FOLD', gtoRangeKey: 'BUBBLE_MID_CO', exp: '【ICM 致命生存溢價】正常 ChipEV 下 KTo 在 CO 是標準開牌，但在泡沫期且後方有全桌 CL 巨鯨壓制時，中碼一旦被 3-Bet 將面臨致命淘汰風險，必須極端緊縮並棄牌保命！' },
+  { depth: '50 BB', pos: 'BTN', actionContext: '賽事泡沫期，盲注 SB (18BB) 與 BB (22BB) 皆為中碼在等進圈，前面棄牌到你', hand: 'Q7s', correct: 'RAISE', gtoRangeKey: 'BUBBLE_CL_BTN', exp: '【CL 巨鯨極端施壓】身為桌上籌碼第一，利用兩位中碼害怕出局的巨大風險溢價，BTN 開牌頻率可放寬至近 70%，果斷開池偷盲。' },
+  { depth: '40 BB', pos: 'BB', actionContext: 'Hero 在 BB 3-Bet 9BB，BTN 4-Bet 至 22BB，Hero 手持 KK', hand: 'KK', correct: 'SHOVE', gtoRangeKey: '40_BB_5B_BTN', exp: '40BB 深度下面對 22BB 的 4-Bet，KK 具備壓倒性勝率，唯一最佳行動就是 5-Bet Jam 推全下，無懼任何跑馬！' }
+];

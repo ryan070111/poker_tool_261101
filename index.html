@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>德州撲克全功能實驗室 v12 (模組化版)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="css/style.css">
+  
+  <!-- Firebase Compatibility SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans text-sm">
+
+  <!-- Header -->
+  <header class="bg-slate-900 border-b border-slate-800 px-3 sm:px-6 py-2.5 sm:py-3.5 flex flex-wrap justify-between items-center gap-2">
+    <div class="flex items-center gap-2">
+      <span class="text-xl sm:text-2xl">♠️</span>
+      <div>
+        <h1 class="text-sm sm:text-base font-bold tracking-wide text-white">德州撲克全功能實驗室</h1>
+        <p class="text-[10px] sm:text-xs text-slate-400">模組化架構 / Firebase 雙向覆蓋同步 / GTO 矩陣資料庫</p>
+      </div>
+    </div>
+    
+    <nav class="flex overflow-x-auto no-scrollbar bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs gap-1 max-w-full">
+      <button onclick="switchTab('counter')" id="tab-btn-counter" class="px-2.5 py-1.5 rounded font-medium text-white bg-blue-600 transition whitespace-nowrap">📊 拿牌計數</button>
+      <button onclick="switchTab('sessions')" id="tab-btn-sessions" class="px-2.5 py-1.5 rounded font-medium text-slate-400 hover:text-white transition whitespace-nowrap">📁 牌局管理/雲端備份</button>
+      <button onclick="switchTab('paint')" id="tab-btn-paint" class="px-2.5 py-1.5 rounded font-medium text-slate-400 hover:text-white transition whitespace-nowrap">🎨 自由上色</button>
+      <button onclick="switchTab('presets')" id="tab-btn-presets" class="px-2.5 py-1.5 rounded font-medium text-slate-400 hover:text-white transition whitespace-nowrap">📚 GTO 範圍庫</button>
+      <button onclick="switchTab('diff')" id="tab-btn-diff" class="px-2.5 py-1.5 rounded font-medium text-slate-400 hover:text-white transition whitespace-nowrap">⚖️ 範圍比對</button>
+      <button onclick="switchTab('trainer')" id="tab-btn-trainer" class="px-2.5 py-1.5 rounded font-medium text-slate-400 hover:text-white transition whitespace-nowrap">🎯 暗牌特訓</button>
+      <button onclick="openSettingsModal()" class="px-2.5 py-1.5 rounded font-bold text-amber-300 hover:text-white bg-slate-900 border border-amber-500/50 hover:bg-amber-950/70 transition whitespace-nowrap flex items-center gap-1">
+        <span>⚙️</span> 雲端設定
+      </button>
+    </nav>
+  </header>
+
+  <!-- Main Workspace -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-2 sm:p-5 grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-6 items-start">
+    
+    <!-- Left Column: 13x13 Range Matrix -->
+    <div class="lg:col-span-7 bg-slate-900 p-2.5 sm:p-4 rounded-xl border border-slate-800 shadow-xl flex flex-col gap-2.5 relative">
+      <div class="flex justify-between items-center gap-1">
+        <div class="flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <h2 id="matrix-title" class="font-bold text-xs sm:text-sm tracking-wide text-slate-200">手牌矩陣 (13×13)</h2>
+        </div>
+        <div id="matrix-stat" class="text-[10px] sm:text-xs font-mono bg-slate-950 px-2 py-0.5 rounded border border-slate-800 text-cyan-400 font-medium">
+          拿過手牌: 0 / 169 (共 0 手)
+        </div>
+      </div>
+
+      <!-- Quick Filter Tabs -->
+      <div class="flex gap-1 overflow-x-auto no-scrollbar text-[11px] pb-0.5">
+        <button onclick="filterMatrixView('all')" id="btn-filter-all" class="px-2 py-0.5 rounded bg-blue-600 text-white font-medium">全部</button>
+        <button onclick="filterMatrixView('pair')" id="btn-filter-pair" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:text-white">對子 (Pairs)</button>
+        <button onclick="filterMatrixView('suited')" id="btn-filter-suited" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:text-white">同花 (Suited)</button>
+        <button onclick="filterMatrixView('broadway')" id="btn-filter-broadway" class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 hover:text-white">大高牌 (Broadway)</button>
+      </div>
+
+      <!-- 9-Max Quick Position Selector -->
+      <div id="pos-bar-container" class="bg-slate-950 p-2 rounded-lg border border-slate-800 flex flex-col gap-1.5">
+        <div class="flex justify-between items-center text-[11px]">
+          <span class="font-semibold text-amber-400 flex items-center gap-1">
+            <span>📍</span> 目前位置 (9-Max Position):
+          </span>
+          <span id="current-pos-badge" class="px-1.5 py-0.5 rounded font-mono font-bold text-[10px] bg-amber-500/20 text-amber-300 border border-amber-600/30">
+            BTN (按鈕位)
+          </span>
+        </div>
+        <div class="grid grid-cols-9 gap-1 text-[10px] font-bold font-mono">
+          <button onclick="set9MaxPos('UTG')" id="pos-btn-UTG" class="pos-btn py-1 rounded bg-slate-900 border border-slate-800 text-slate-300 hover:bg-slate-800">UTG</button>
+          <button onclick="set9MaxPos('UTG+1')" id="pos-btn-UTG+1" class="pos-btn py-1 rounded bg-slate-900 border border-slate-800 text-slate-300 hover:bg-slate-800">UTG1</button>
+          <button onclick="set9MaxPos('MP')" id="pos-btn-MP" class="pos-btn py-1 rounded bg-slate-900 border border-slate-800 text-slate-300 hover:bg-slate-800">MP</button>
+          <button onclick="set9MaxPos('LJ')" id="pos-btn-LJ" class="pos-btn py-1 rounded bg-slate-900 border border-slate-800 text-slate-300 hover:bg-slate-800">LJ</button>
+          <button onclick="set9MaxPos('HJ')" id="pos-btn-HJ" class="pos-btn py-1 rounded bg-slate-900 border border-slate-800 text-slate-300 hover:bg-slate-800">HJ</button>
+          <button onclick="set9MaxPos('CO')" id="pos-btn-CO" class="pos-btn py-1 rounded bg-slate-900 border border-slate-800 text-slate-300 hover:bg-slate-800">CO</button>
+          <button onclick="set9MaxPos('BTN')" id="pos-btn-BTN" class="pos-btn py-1 rounded bg-amber-600 border border-amber-500 text-white">BTN</button>
+          <button onclick="set9MaxPos('SB')" id="pos-btn-SB" class="pos-btn py-1 rounded bg-slate-900 border border-slate-800 text-slate-300 hover:bg-slate-800">SB</button>
+          <button onclick="set9MaxPos('BB')" id="pos-btn-BB" class="pos-btn py-1 rounded bg-slate-900 border border-slate-800 text-slate-300 hover:bg-slate-800">BB</button>
+        </div>
+      </div>
+
+      <!-- Matrix Container -->
+      <div class="relative">
+        <div id="poker-matrix" class="grid-matrix bg-slate-950 p-1 sm:p-1.5 rounded-lg border border-slate-800"></div>
+
+        <div id="trainer-fog" class="hidden absolute inset-0 bg-slate-950/90 backdrop-blur-sm rounded-lg flex flex-col items-center justify-center border border-slate-700/50 p-4 text-center">
+          <span class="text-3xl sm:text-4xl mb-2">🔒</span>
+          <p class="text-xs sm:text-sm font-bold text-slate-200 mb-1">思考中：答案已隱藏</p>
+          <p class="text-[11px] text-slate-400 mb-3 max-w-xs leading-relaxed">請依據右側情境做出最佳行動，做出判斷後即會自動解鎖並點亮範圍。</p>
+          <button onclick="toggleFogManual()" class="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded text-slate-200 font-medium transition">
+            👁️ 手動顯示 / 隱藏矩陣
+          </button>
+        </div>
+      </div>
+
+      <div class="flex justify-between items-center text-[10px] sm:text-[11px] text-slate-400 pt-0.5">
+        <span id="matrix-footer-tip" class="truncate pr-2">點選手牌單次增加拿牌數；自動關聯當前 9-Max 位置。</span>
+        <button onclick="clearCurrentMatrix()" class="text-rose-400 hover:text-rose-300 transition whitespace-nowrap">清空數據</button>
+      </div>
+    </div>
+
+    <!-- Right Column: Context Panels -->
+    <div class="lg:col-span-5 flex flex-col gap-3 sm:gap-4">
+
+      <!-- Panel 1: Hand Counter -->
+      <div id="panel-counter" class="bg-slate-900 p-3.5 sm:p-5 rounded-xl border border-slate-800 shadow-xl flex flex-col gap-3">
+        <div>
+          <div class="flex items-center justify-between">
+            <h3 class="font-bold text-slate-200 text-xs sm:text-sm">手牌拿牌次數紀錄器</h3>
+            <span id="counter-total-badge" class="text-[11px] font-mono bg-blue-950 border border-blue-800 text-cyan-300 px-2 py-0.5 rounded">
+              目前牌局: 0 手
+            </span>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-0.5">點擊流水帳記錄可編輯修改，矩陣即刻同步重算。</p>
+        </div>
+
+        <!-- Staging Holding Area -->
+        <div class="bg-slate-950 p-2.5 rounded-lg border border-amber-600/40 flex flex-col gap-1.5 shadow-md">
+          <div class="flex flex-wrap justify-between items-center gap-1 text-[11px]">
+            <span class="font-bold text-amber-300 flex items-center gap-1">
+              <span>⏳</span> 快速暫存手牌區
+            </span>
+            <div class="flex items-center gap-2">
+              <label class="flex items-center gap-1 cursor-pointer bg-amber-950/80 hover:bg-amber-900 border border-amber-500/60 px-2 py-0.5 rounded text-[11px] text-amber-300 font-bold select-none transition">
+                <input type="checkbox" id="chk-staging-mode" onchange="toggleStagingMode(this.checked)" class="w-3.5 h-3.5 accent-amber-500 rounded cursor-pointer">
+                <span>點選矩陣直接進暫存</span>
+              </label>
+              <span id="staging-status" class="text-[10px] text-slate-400 font-mono">暫存: 0 組</span>
+            </div>
+          </div>
+          <div class="flex gap-1.5">
+            <input type="text" id="staging-input-hand" placeholder="如 AKs, 88, KJo, A5s" 
+                   onkeydown="if(event.key==='Enter') addStagedHand()"
+                   class="w-28 sm:w-32 bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-xs text-amber-300 font-mono font-bold uppercase placeholder-slate-500 focus:outline-none focus:border-amber-500">
+            <button onclick="addStagedHand()" class="px-2.5 py-1 bg-amber-600 hover:bg-amber-500 text-white rounded text-xs font-bold transition whitespace-nowrap">
+              ＋ 暫存
+            </button>
+            <button onclick="commitAllStagedHands()" class="flex-1 px-2 py-1 bg-emerald-700 hover:bg-emerald-600 text-white rounded text-xs font-bold transition whitespace-nowrap truncate">
+              🚀 全數加入手牌區
+            </button>
+          </div>
+          <div id="staging-pills-container" class="flex flex-wrap gap-1 min-h-[24px] pt-0.5 items-center">
+            <span class="text-slate-600 text-[10px] italic">還在記上一手但新牌發下時，先在此鍵入暫存！</span>
+          </div>
+        </div>
+
+        <!-- Cloud Instant Sync Status Bar -->
+        <div id="cloud-status-strip" class="bg-slate-950 px-2.5 py-1.5 rounded-lg border border-slate-800 flex justify-between items-center text-[10px] text-slate-400">
+          <span class="flex items-center gap-1.5">
+            <span id="cloud-status-dot" class="w-2 h-2 rounded-full bg-slate-600"></span>
+            <span id="cloud-status-text">雲端狀態：尚未連線</span>
+          </span>
+          <div class="flex gap-1.5">
+            <button onclick="uploadToCloud()" class="px-2 py-0.5 rounded bg-blue-900/60 hover:bg-blue-800 text-cyan-300 border border-blue-700/60 transition">
+              ☁️ 上傳
+            </button>
+            <button onclick="downloadFromCloud()" class="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition">
+              🔄 覆蓋同步
+            </button>
+          </div>
+        </div>
+
+        <!-- Mode Toggle & Undo Bar -->
+        <div class="grid grid-cols-12 gap-1.5 text-xs">
+          <button id="counter-mode-add" onclick="setCounterMode('add')" class="col-span-4 py-1.5 rounded-lg font-bold bg-blue-600 text-white border border-blue-500 transition flex items-center justify-center gap-1 text-[11px]">
+            <span>➕</span> 累加
+          </button>
+          <button id="counter-mode-sub" onclick="setCounterMode('sub')" class="col-span-4 py-1.5 rounded-lg font-bold bg-slate-950 text-slate-400 border border-slate-800 hover:text-white transition flex items-center justify-center gap-1 text-[11px]">
+            <span>➖</span> 倒扣
+          </button>
+          <button onclick="undoLastCounterLog()" class="col-span-4 py-1.5 bg-amber-950/70 hover:bg-amber-900/80 border border-amber-800/80 text-amber-300 rounded-lg font-medium transition flex items-center justify-center gap-1 text-[11px]">
+            <span>↩️</span> 撤銷上步
+          </button>
+        </div>
+
+        <!-- Input 1: Custom Note -->
+        <div class="bg-slate-950 p-2.5 rounded-lg border border-slate-800 flex flex-col gap-1.5">
+          <div class="flex justify-between items-center text-[11px]">
+            <span class="font-semibold text-purple-400 flex items-center gap-1">
+              <span>💬</span> 自由備忘紀錄
+            </span>
+            <span class="text-[9px] text-slate-500">撤銷時還原回文字框</span>
+          </div>
+          <div class="flex gap-1.5">
+            <input type="text" id="log-custom-text" placeholder="手牌心得、對手特徵或轉牌被推..." 
+                   onkeydown="if(event.key==='Enter') submitCustomLogText()"
+                   class="flex-1 bg-slate-900 border border-slate-700 rounded px-2.5 py-1 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-purple-500">
+            <button onclick="submitCustomLogText()" class="px-3 py-1 bg-purple-600 hover:bg-purple-500 text-white rounded text-xs font-medium transition whitespace-nowrap">
+              記下文字
+            </button>
+          </div>
+        </div>
+
+        <!-- Input 2: Current BB & Stack -->
+        <div class="bg-slate-950 p-2.5 rounded-lg border border-slate-800 flex flex-col gap-1.5">
+          <div class="flex justify-between items-center text-[11px]">
+            <span class="font-semibold text-emerald-400 flex items-center gap-1">
+              <span>🪙</span> 盲碼與位置打點
+            </span>
+            <span class="text-[9px] text-slate-500">自動綁定上方 9-Max 位置</span>
+          </div>
+          <div class="grid grid-cols-12 gap-1.5 items-center">
+            <div class="col-span-4">
+              <input type="text" id="log-bb-size" placeholder="大盲 (如 1000)" 
+                     class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500">
+            </div>
+            <div class="col-span-5">
+              <input type="text" id="log-stack-size" placeholder="碼量 (如 25000)" 
+                     class="w-full bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-emerald-500">
+            </div>
+            <div class="col-span-3">
+              <button onclick="submitTableStateLog()" class="w-full py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-medium transition whitespace-nowrap">
+                記錄盲碼
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- History Log Stream -->
+        <div class="bg-slate-950 p-2.5 rounded-lg border border-slate-800 flex flex-col gap-1.5">
+          <div class="flex justify-between items-center text-[11px]">
+            <span class="font-semibold text-slate-300">時序動態流水帳 (<span id="log-count-indicator">0 筆</span>，點擊項目可編輯)</span>
+            <div class="flex items-center gap-1">
+              <span class="text-[10px] text-slate-500">高度:</span>
+              <select id="log-height-select" onchange="changeLogHeight(this.value)" class="bg-slate-900 border border-slate-700 rounded px-1 py-0.5 text-[10px] text-cyan-400 font-mono focus:outline-none">
+                <option value="h-44">適中 (176px)</option>
+                <option value="h-72" selected>加大 (288px)</option>
+                <option value="h-96">特大 (384px)</option>
+                <option value="h-auto">完全展開 (無限制)</option>
+              </select>
+            </div>
+          </div>
+          
+          <div id="counter-log-list" class="h-72 overflow-y-auto space-y-1 text-[11px] font-mono pr-1 text-slate-300 divide-y divide-slate-900">
+            <div class="text-slate-600 py-3 text-center italic text-xs">點擊手牌或點按上方按鈕開始打點</div>
+          </div>
+        </div>
+
+        <!-- Hand Ranking Summary Top 5 -->
+        <div class="bg-slate-950 p-2.5 rounded-lg border border-slate-800 text-[11px]">
+          <div class="font-semibold text-slate-300 mb-1 flex justify-between">
+            <span>本場高頻手牌 TOP 5</span>
+            <span class="text-[9px] text-slate-500">自動排名</span>
+          </div>
+          <div id="counter-top-list" class="space-y-0.5 font-mono text-slate-400">
+            尚無紀錄
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 2: Sessions Manager -->
+      <div id="panel-sessions" class="hidden bg-slate-900 p-3.5 sm:p-5 rounded-xl border border-slate-800 shadow-xl flex flex-col gap-3.5">
+        <div class="flex justify-between items-start">
+          <div>
+            <h3 class="font-bold text-slate-200 text-xs sm:text-sm">牌局集中管理與雲端備份</h3>
+            <p class="text-[11px] text-slate-400 mt-0.5">將全部牌局歷史一鍵同步到 Firestore 資料庫，多裝置復盤零時差。</p>
+          </div>
+          <button onclick="saveCurrentAsNewSession()" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-bold transition whitespace-nowrap">
+            💾 存為獨立牌局
+          </button>
+        </div>
+
+        <div class="bg-slate-950 p-3 rounded-lg border border-cyan-600/40 flex flex-col gap-2">
+          <div class="flex justify-between items-center text-[11px]">
+            <span class="font-bold text-cyan-300 flex items-center gap-1">
+              <span>☁️</span> 雲端資料庫一鍵操作
+            </span>
+            <span class="text-[10px] text-slate-400 font-mono" id="sessions-cloud-room">房間: my_poker_lab</span>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="uploadToCloud()" class="py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded text-xs transition flex items-center justify-center gap-1">
+              <span>📤</span> 一鍵上傳全歸檔與手牌
+            </button>
+            <button onclick="downloadFromCloud()" class="py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded text-xs transition flex items-center justify-center gap-1">
+              <span>📥</span> 覆蓋同步雲端資料庫
+            </button>
+          </div>
+        </div>
+
+        <!-- Transfer Textbox -->
+        <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 flex flex-col gap-2">
+          <div class="flex justify-between items-center text-[11px]">
+            <span class="font-bold text-slate-300 flex items-center gap-1">
+              <span>📋</span> 本地文字代碼手動傳送區 (備用)
+            </span>
+            <span class="text-[10px] text-slate-500">離線時可用文字複製</span>
+          </div>
+          <textarea id="transfer-textbox" rows="3" placeholder="點擊下方按鈕可生成純文字備份，或貼上代碼手動載入..." class="w-full bg-slate-900 border border-slate-700 rounded p-2 text-[11px] font-mono text-cyan-200 focus:outline-none focus:border-cyan-500"></textarea>
+          
+          <div class="grid grid-cols-3 gap-1.5">
+            <button onclick="generateExportText()" class="py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium rounded text-xs transition">
+              匯出文字
+            </button>
+            <button onclick="copyTransferTextbox()" class="py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium rounded text-xs transition">
+              複製文字
+            </button>
+            <button onclick="importFromTransferTextbox()" class="py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium rounded text-xs transition">
+              文字匯入
+            </button>
+          </div>
+        </div>
+
+        <!-- Grand Stats Card -->
+        <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 grid grid-cols-3 gap-2 text-center">
+          <div class="bg-slate-900 p-2 rounded border border-slate-800">
+            <div class="text-[10px] text-slate-400">歷史總場次</div>
+            <div id="agg-total-sessions" class="text-base font-bold text-cyan-400 font-mono">0 場</div>
+          </div>
+          <div class="bg-slate-900 p-2 rounded border border-slate-800">
+            <div class="text-[10px] text-slate-400">累計發牌手數</div>
+            <div id="agg-total-hands" class="text-base font-bold text-emerald-400 font-mono">0 手</div>
+          </div>
+          <div class="bg-slate-900 p-2 rounded border border-slate-800">
+            <div class="text-[10px] text-slate-400">覆蓋手牌種數</div>
+            <div id="agg-distinct-hands" class="text-base font-bold text-amber-400 font-mono">0 / 169</div>
+          </div>
+        </div>
+
+        <!-- Saved Sessions List -->
+        <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 flex flex-col gap-2">
+          <div class="flex justify-between items-center text-[11px]">
+            <span class="font-semibold text-slate-300">已歸檔牌局列表</span>
+            <span id="session-count-label" class="text-[10px] text-slate-500">共 0 筆</span>
+          </div>
+          <div id="saved-sessions-list" class="max-h-56 overflow-y-auto space-y-1.5 text-xs pr-1">
+            <div class="text-slate-600 py-3 text-center italic text-xs">尚無歸檔牌局，請點擊上方「存為獨立牌局」</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 3: Free Painter -->
+      <div id="panel-paint" class="hidden bg-slate-900 p-3.5 sm:p-5 rounded-xl border border-slate-800 shadow-xl flex flex-col gap-3">
+        <div>
+          <h3 class="font-bold text-slate-200 text-xs sm:text-sm">自由範圍上色與分析</h3>
+          <p class="text-[11px] text-slate-400 mt-0.5">選取筆刷顏色並於左側矩陣點擊或拖曳塗抹，自訂標籤與分析筆記</p>
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          <label class="text-[11px] font-medium text-slate-400">筆刷標籤與顏色</label>
+          <div class="grid grid-cols-2 gap-1.5 text-xs">
+            <button onclick="setBrush('#ef4444', '3-Bet / 4-Bet')" class="p-1.5 rounded border border-slate-700 flex items-center gap-1.5 hover:bg-slate-800 transition">
+              <span class="w-3 h-3 rounded-sm bg-red-500"></span> 3-Bet / Raise
+            </button>
+            <button onclick="setBrush('#3b82f6', 'Flat Call')" class="p-1.5 rounded border border-slate-700 flex items-center gap-1.5 hover:bg-slate-800 transition">
+              <span class="w-3 h-3 rounded-sm bg-blue-500"></span> Flat Call
+            </button>
+            <button onclick="setBrush('#eab308', 'Semi-Bluff')" class="p-1.5 rounded border border-slate-700 flex items-center gap-1.5 hover:bg-slate-800 transition">
+              <span class="w-3 h-3 rounded-sm bg-yellow-500"></span> 半詐唬 (Bluff)
+            </button>
+            <button onclick="setBrush('#10b981', 'Value')" class="p-1.5 rounded border border-slate-700 flex items-center gap-1.5 hover:bg-slate-800 transition">
+              <span class="w-3 h-3 rounded-sm bg-emerald-500"></span> 純價值 (Value)
+            </button>
+          </div>
+
+          <div class="flex items-center gap-2 bg-slate-950 p-1.5 rounded-lg border border-slate-800 text-xs">
+            <input type="color" id="custom-color-picker" value="#a855f7" onchange="setCustomBrush(this.value)" class="w-6 h-6 rounded border-0 cursor-pointer bg-transparent">
+            <span class="text-slate-300 font-medium text-[11px]">自訂色:</span>
+            <input type="text" id="custom-color-label" placeholder="標籤 (如: 偷盲)" class="bg-slate-900 border border-slate-700 rounded px-2 py-1 text-xs text-slate-200 flex-1">
+          </div>
+          
+          <button onclick="setBrush('transparent', 'Fold / 清除')" class="p-1.5 rounded border border-dashed border-slate-700 text-slate-400 hover:text-slate-200 text-xs text-center hover:bg-slate-800 transition">
+            🧹 橡皮擦 (清除格線)
+          </button>
+        </div>
+
+        <div class="bg-slate-950 p-2.5 rounded-lg border border-slate-800 flex flex-col gap-1 text-xs">
+          <div class="text-[10px] font-semibold text-slate-400">上色統計分佈：</div>
+          <div id="paint-breakdown" class="flex flex-col gap-0.5 text-[11px] font-mono text-slate-300">
+            尚無上色牌型
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-[11px] font-medium text-slate-400 mb-1">對局覆盤與筆記 (自動儲存)</label>
+          <textarea id="study-notes" rows="3" oninput="saveNotes()" placeholder="在此記錄特定對手的防守習慣、頻率缺失或 GTO 偏離思考..." class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs text-slate-200 focus:outline-none focus:border-blue-500"></textarea>
+        </div>
+      </div>
+
+      <!-- Panel 4: GTO Presets Library -->
+      <div id="panel-presets" class="hidden bg-slate-900 p-3.5 sm:p-5 rounded-xl border border-slate-800 shadow-xl flex flex-col gap-3">
+        <div>
+          <h3 class="font-bold text-slate-200 text-xs sm:text-sm">GTO 常用翻前情境庫</h3>
+          <p class="text-[11px] text-slate-400 mt-0.5">涵蓋常用籌碼深度之開牌 (RFI) 與盲注抵抗策略</p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 text-xs">
+          <div>
+            <label class="block text-slate-400 mb-1 font-medium text-[11px]">籌碼深度 (Stack)</label>
+            <select id="preset-depth" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-1.5 text-xs text-slate-200">
+              <option value="40">40 BB (標準翻後)</option>
+              <option value="30">30 BB (高牌轉折)</option>
+              <option value="25">25 BB (3B-Shove 警戒)</option>
+              <option value="20">20 BB (Min-raise 臨界)</option>
+              <option value="15">15 BB (Push/Fold 邊界)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-slate-400 mb-1 font-medium text-[11px]">位置情境 (Position)</label>
+            <select id="preset-pos" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-1.5 text-xs text-slate-200">
+              <optgroup label="開牌 (Raise First In)">
+                <option value="LJ">LJ 開牌 (Lowjack)</option>
+                <option value="HJ">HJ 開牌 (Hijack)</option>
+                <option value="CO">CO 開牌 (Cutoff)</option>
+                <option value="BTN" selected>BTN 開牌 (Button)</option>
+              </optgroup>
+              <optgroup label="面對開牌 3-Bet (3-Bet vs Open)">
+                <option value="BTN_3B_CO">BTN vs CO Open (3-Bet)</option>
+                <option value="CO_3B_LJ">CO vs LJ Open (3-Bet)</option>
+                <option value="SB_3B_BTN">SB vs BTN Open (3-Bet)</option>
+                <option value="BB_3B_BTN">BB vs BTN Open (3-Bet)</option>
+                <option value="BB_3B_CO">BB vs CO Open (3-Bet)</option>
+                <option value="BB_3B_LJ">BB vs LJ Open (3-Bet)</option>
+              </optgroup>
+              <optgroup label="面對 3-Bet 之 4-Bet 範圍 (4-Bet vs 3-Bet)">
+                <option value="BTN_4B_BB">BTN vs BB 3-Bet (4-Bet/Call-off)</option>
+                <option value="CO_4B_BTN">CO vs BTN 3-Bet (4-Bet)</option>
+                <option value="LJ_4B_BTN">LJ vs BTN 3-Bet (Tight 4-Bet)</option>
+                <option value="SB_4B_BB">SB vs BB 3-Bet (BvB 4-Bet)</option>
+              </optgroup>
+              <optgroup label="5-Bet 全下 / Call-off (5-Bet vs 4-Bet)">
+                <option value="BB_5B_BTN">40BB BB vs BTN (5-Bet Jam)</option>
+                <option value="BTN_5B_SB">40BB BTN vs SB (5-Bet Jam)</option>
+                <option value="100_BTN_5B_BB">100BB 深碼 5-Bet 體系</option>
+              </optgroup>
+              <optgroup label="泡沫期 ICM 修正 (Bubble Adjustments)">
+                <option value="BUBBLE_CL_BTN">泡沫期 CL 按鈕巨鯨偷盲 (68%)</option>
+                <option value="BUBBLE_MID_CO">泡沫期 中碼 CO 極端緊縮 (16%)</option>
+                <option value="BUBBLE_SHORT_PUSH">泡沫期 12BB 短碼保命推牌 (11%)</option>
+                <option value="BUBBLE_BB_vs_CL">泡沫期 中碼 BB 面對 CL 偷盲 (25%)</option>
+              </optgroup>
+              <optgroup label="短碼 3-Bet Shove / 反推 (Reshove)">
+                <option value="BB_shove_BTN">BB vs BTN (3B-Shove)</option>
+                <option value="BB_shove_CO">BB vs CO (3B-Shove)</option>
+                <option value="BTN_shove_CO">BTN vs CO (3B-Shove)</option>
+              </optgroup>
+              <optgroup label="盲注平跟防守 (Defense / Call)">
+                <option value="BB_def_BTN">BB 面對 BTN Min-Raise (Defend)</option>
+                <option value="BB_def_LJ">BB 面對 LJ 開牌 (Tight Defend)</option>
+                <option value="SB_def">SB 面對 Open (Call / 3B)</option>
+              </optgroup>
+            </select>
+          </div>
+        </div>
+
+        <div class="bg-slate-950 p-2.5 rounded-lg border border-slate-800 text-xs flex flex-col gap-1.5">
+          <div class="font-semibold text-cyan-400" id="preset-desc-title">BTN 開牌範圍</div>
+          <p class="text-slate-400 leading-relaxed text-[10px] sm:text-[11px]" id="preset-desc-body">正在載入情境說明...</p>
+        </div>
+
+        <button onclick="copyCurrentMatrixHands()" class="w-full py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-medium text-slate-200 transition">
+          📋 複製手牌代碼至剪貼簿
+        </button>
+      </div>
+
+      <!-- Panel 5: Range Diff -->
+      <div id="panel-diff" class="hidden bg-slate-900 p-3.5 sm:p-5 rounded-xl border border-slate-800 shadow-xl flex flex-col gap-3">
+        <div>
+          <h3 class="font-bold text-slate-200 text-xs sm:text-sm">雙範圍交集與差異比對 (Diff)</h3>
+          <p class="text-[11px] text-slate-400 mt-0.5">直觀分析不同位置、籌碼量或 ChipEV vs ICM 之間的範圍縮減</p>
+        </div>
+
+        <div class="space-y-2 text-xs">
+          <div>
+            <label class="block text-blue-400 mb-1 font-medium text-[11px]">基準範圍 A (藍底)</label>
+            <select id="diff-range-a" onchange="runRangeDiff()" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-1.5 text-slate-200">
+              <option value="40_BTN">40BB BTN 開牌 (45%)</option>
+              <option value="40_BTN_4B_BB">40BB BTN vs BB 4-Bet (6.5%)</option>
+              <option value="40_BB_3B_BTN">40BB BB vs BTN 3-Bet (13%)</option>
+              <option value="BUBBLE_CL_BTN">泡沫期 CL BTN 巨鯨偷盲 (68%)</option>
+              <option value="40_BB_5B_BTN">40BB BB vs BTN 5-Bet (3.2%)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-amber-400 mb-1 font-medium text-[11px]">對比範圍 B (黃底)</label>
+            <select id="diff-range-b" onchange="runRangeDiff()" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-1.5 text-slate-200">
+              <option value="BUBBLE_MID_CO">泡沫期 中碼 CO 緊縮開牌 (16%)</option>
+              <option value="40_BB_3B_LJ">40BB BB vs LJ 3-Bet (5.5%)</option>
+              <option value="40_BB_3B_BTN">40BB BB vs BTN 3-Bet (13%)</option>
+              <option value="BUBBLE_BB_vs_CL">泡沫期 BB vs CL 防守 (25%)</option>
+              <option value="40_BB_def_BTN">40BB BB 抵抗範圍 (68%)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="bg-slate-950 p-2.5 rounded-lg border border-slate-800 text-[11px] flex flex-col gap-1.5">
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded bg-emerald-500"></span>
+            <span class="text-slate-200">綠色：兩者重疊 (A 與 B 皆包含)</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded bg-blue-600"></span>
+            <span class="text-slate-200">藍色：僅 A 獨有 (在 B 中被剔除)</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded bg-amber-500"></span>
+            <span class="text-slate-200">黃色：僅 B 獨有 (在 A 中未包含)</span>
+          </div>
+        </div>
+
+        <div id="diff-stats" class="text-xs font-mono text-slate-400 p-2 bg-slate-950 rounded border border-slate-800">
+          重疊組合: - | 差異組合: -
+        </div>
+      </div>
+
+      <!-- Panel 6: Trainer -->
+      <div id="panel-trainer" class="hidden bg-slate-900 p-3.5 sm:p-5 rounded-xl border border-slate-800 shadow-xl flex flex-col gap-3">
+        <div class="flex justify-between items-start">
+          <div>
+            <h3 class="font-bold text-slate-200 text-xs sm:text-sm">翻前決策特訓 (防透題)</h3>
+            <p class="text-[11px] text-slate-400 mt-0.5">作答時暗色迷霧遮蔽左側，交卷後即時高亮解鎖</p>
+          </div>
+          <span id="trainer-score" class="text-[11px] font-mono bg-blue-950/60 border border-blue-800 text-blue-300 px-2 py-0.5 rounded">
+            得分: 0 / 0
+          </span>
+        </div>
+
+        <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 flex flex-col gap-2">
+          <div class="flex justify-between items-center text-[11px] text-slate-400">
+            <span id="quiz-meta" class="font-medium text-slate-300">情境載入中...</span>
+            <span id="quiz-badge" class="px-1.5 py-0.5 rounded bg-slate-800 text-[10px]">9-Max MTT</span>
+          </div>
+          
+          <div class="flex items-center justify-center py-1">
+            <div id="quiz-hero-hand" class="text-xl sm:text-2xl font-black font-mono tracking-widest text-amber-400 bg-slate-900 px-4 py-1.5 rounded-lg border border-slate-700 shadow-inner">
+              --
+            </div>
+          </div>
+
+          <p id="quiz-question" class="text-[11px] text-slate-300 text-center leading-relaxed">
+            --
+          </p>
+        </div>
+
+        <div id="quiz-actions" class="grid grid-cols-2 gap-2">
+          <button onclick="handleQuizAnswer('FOLD')" class="py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg text-xs font-bold text-slate-200 transition">
+            棄牌 (Fold)
+          </button>
+          <button onclick="handleQuizAnswer('CALL')" class="py-2 bg-blue-900 hover:bg-blue-800 border border-blue-700 rounded-lg text-xs font-bold text-blue-200 transition">
+            平跟 (Call)
+          </button>
+          <button onclick="handleQuizAnswer('RAISE')" class="py-2 bg-red-900 hover:bg-red-800 border border-red-700 rounded-lg text-xs font-bold text-red-200 transition">
+            加注 (Raise / 3B)
+          </button>
+          <button onclick="handleQuizAnswer('SHOVE')" class="py-2 bg-amber-900 hover:bg-amber-800 border border-amber-700 rounded-lg text-xs font-bold text-amber-200 transition">
+            全下 (All-in)
+          </button>
+        </div>
+
+        <div id="quiz-feedback" class="hidden bg-slate-950 p-3 rounded-lg border border-slate-800 text-xs flex flex-col gap-1.5">
+          <div id="quiz-feedback-title" class="font-bold text-emerald-400">回答正確！</div>
+          <p id="quiz-feedback-desc" class="text-slate-400 leading-relaxed text-[11px]">--</p>
+          <button onclick="generateNextQuiz()" class="mt-1 w-full py-1.5 bg-blue-600 hover:bg-blue-500 rounded text-white font-medium transition text-xs">
+            下一題 (Next Hand)
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Interactive Log Edit/Delete Modal -->
+  <div id="edit-log-modal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-xl max-w-sm w-full p-4 shadow-2xl flex flex-col gap-3 text-xs">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-1.5">
+        <h3 class="font-bold text-sm text-cyan-300 flex items-center gap-1.5">
+          <span>✏️</span> 編輯流水帳記錄
+        </h3>
+        <button onclick="closeLogEditModal()" class="text-slate-400 hover:text-white font-bold p-1">✕</button>
+      </div>
+
+      <div class="flex flex-col gap-2">
+        <div>
+          <label class="text-[11px] text-slate-400 mb-0.5 block font-medium">9-Max 位置</label>
+          <select id="edit-log-pos" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 text-xs text-amber-300 font-mono">
+            <option value="UTG">UTG</option>
+            <option value="UTG+1">UTG+1</option>
+            <option value="MP">MP</option>
+            <option value="LJ">LJ</option>
+            <option value="HJ">HJ</option>
+            <option value="CO">CO</option>
+            <option value="BTN">BTN</option>
+            <option value="SB">SB</option>
+            <option value="BB">BB</option>
+          </select>
+        </div>
+
+        <div id="edit-row-hand" class="hidden">
+          <label class="text-[11px] text-slate-400 mb-0.5 block font-medium">手牌代碼 (改動將同步更新矩陣)</label>
+          <input type="text" id="edit-log-hand" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 text-xs font-mono font-bold text-cyan-300 uppercase">
+        </div>
+
+        <div id="edit-row-text" class="hidden">
+          <label class="text-[11px] text-slate-400 mb-0.5 block font-medium">備忘文字內容</label>
+          <textarea id="edit-log-text" rows="3" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 text-xs text-purple-200"></textarea>
+        </div>
+
+        <div id="edit-row-state" class="hidden grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-[11px] text-slate-400 mb-0.5 block font-medium">大盲 (BB)</label>
+            <input type="text" id="edit-log-bb" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 text-xs font-mono text-emerald-300">
+          </div>
+          <div>
+            <label class="text-[11px] text-slate-400 mb-0.5 block font-medium">碼量 (Stack)</label>
+            <input type="text" id="edit-log-stack" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 text-xs font-mono text-emerald-300">
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between gap-2 pt-2 border-t border-slate-800">
+        <button onclick="deleteEditedLog()" class="px-3 py-1.5 bg-rose-950 hover:bg-rose-900 border border-rose-800 text-rose-300 rounded font-medium transition text-xs">
+          🗑️ 刪除此筆
+        </button>
+        <div class="flex gap-1.5">
+          <button onclick="closeLogEditModal()" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs">
+            取消
+          </button>
+          <button onclick="saveEditedLog()" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded text-xs transition">
+            儲存變更
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal (Firebase Cloud & Version) -->
+  <div id="settings-modal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
+    <div class="bg-slate-900 border border-slate-700 rounded-xl max-w-lg w-full p-4 sm:p-5 shadow-2xl flex flex-col gap-3.5 max-h-[90vh] overflow-y-auto text-xs">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+        <h3 class="font-bold text-sm sm:text-base text-amber-300 flex items-center gap-1.5">
+          <span>⚙️</span> 雲端資料庫與跨裝置連通設定
+        </h3>
+        <button onclick="closeSettingsModal()" class="text-slate-400 hover:text-white font-bold text-lg p-1">✕</button>
+      </div>
+
+      <div class="bg-slate-950 p-3 rounded-lg border border-slate-800 text-slate-300 leading-relaxed text-[11px] space-y-1.5">
+        <div class="font-bold text-cyan-400">📱 手機與 💻 電腦如何即時互通？</div>
+        <p>在此填入你的免費 Firebase Config，並設定一組專屬的「房間同步金鑰（Sync Room Code）」。兩端輸入相同的金鑰，手機打點完點擊「上傳」，電腦端點擊覆蓋同步即可接收！</p>
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label class="font-semibold text-slate-300 text-[11px]">Firebase Config (JSON 格式)</label>
+        <textarea id="cfg-firebase-json" rows="4" placeholder='{ "apiKey": "...", "projectId": "..." }' class="w-full bg-slate-950 border border-slate-700 rounded p-2 font-mono text-[10px] text-cyan-300 focus:outline-none focus:border-amber-500"></textarea>
+      </div>
+
+      <div class="flex flex-col gap-1">
+        <label class="font-semibold text-slate-300 text-[11px]">自訂同步金鑰 (Sync Room Code)</label>
+        <div class="flex gap-2">
+          <input type="text" id="cfg-room-code" placeholder="如: my_poker_mtt_2026" class="flex-1 bg-slate-950 border border-slate-700 rounded px-2.5 py-1.5 text-xs text-amber-300 font-mono focus:outline-none focus:border-amber-500">
+          <button onclick="generateRandomRoomCode()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded text-slate-300 font-medium">隨機生成</button>
+        </div>
+      </div>
+
+      <label class="flex items-center gap-2 cursor-pointer bg-slate-950 p-2 rounded border border-slate-800 select-none">
+        <input type="checkbox" id="cfg-auto-sync" class="w-4 h-4 accent-amber-500 rounded cursor-pointer">
+        <span class="text-slate-300 font-medium">手牌打點時自動在背景靜默上傳雲端 (Auto-Sync)</span>
+      </label>
+
+      <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-1">
+        <button onclick="saveAndInitFirebase()" class="py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded transition">
+          💾 儲存並連線
+        </button>
+        <button onclick="testFirebaseConnection()" class="py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded transition">
+          🔍 測試連線
+        </button>
+        <button onclick="closeSettingsModal()" class="py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded transition col-span-2 sm:col-span-1">
+          關閉視窗
+        </button>
+      </div>
+
+      <div class="border-t border-slate-800 pt-2.5 flex justify-between items-center text-[10px] text-slate-400">
+        <span>目前版本：v12</span>
+        <button onclick="manualCheckNewVersion()" class="text-cyan-400 hover:underline">🔄 立即手動檢查更新</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Version Update Floating Prompt Banner -->
+  <div id="version-update-banner" class="hidden fixed bottom-4 right-4 left-4 sm:left-auto sm:w-96 z-50 bg-gradient-to-r from-blue-900 to-indigo-900 border-2 border-cyan-400 p-3.5 rounded-xl shadow-2xl flex flex-col gap-2">
+    <div class="flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="text-xl">🚀</span>
+        <div class="font-bold text-white text-xs sm:text-sm" id="version-banner-title">發現最新版本！</div>
+      </div>
+      <button onclick="closeVersionBanner()" class="text-slate-300 hover:text-white text-xs font-bold p-1">✕</button>
+    </div>
+    <p class="text-[11px] text-cyan-100 leading-relaxed">
+      系統偵測到更新版本的撲克實驗室，點擊立即跳轉載入。
+    </p>
+    <div class="flex gap-2 justify-end pt-1">
+      <button onclick="closeVersionBanner()" class="px-2.5 py-1 rounded bg-blue-950/70 border border-blue-700 text-slate-300 text-[11px]">稍後提醒</button>
+      <a id="version-redirect-link" href="#" class="px-3 py-1 rounded bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-[11px] transition">立即跳轉更新</a>
+    </div>
+  </div>
+
+  <!-- 引用外部模組 JavaScript 檔案 -->
+  <script src="js/gto_presets.js"></script>
+  <script src="js/quiz_bank.js"></script>
+  <script src="js/firebase_sync.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
