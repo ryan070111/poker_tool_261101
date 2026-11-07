@@ -826,7 +826,8 @@
       const activePositions = TABLE_POSITIONS_ACTIVE_MAP[currentTableSize] || TABLE_POSITIONS_ACTIVE_MAP[9];
       const currentIndex = activePositions.indexOf(currentStagedPos);
       if (currentIndex !== -1) {
-        const nextIndex = (currentIndex + 1) % activePositions.length;
+        // ✅ 正確邏輯：莊家順時針移動，你的位置逆向輪轉（+ activePositions.length 確保餘數不為負數）
+        const nextIndex = (currentIndex - 1 + activePositions.length) % activePositions.length;
         setStagedPos(activePositions[nextIndex]);
       }
     }
