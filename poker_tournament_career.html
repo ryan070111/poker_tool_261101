@@ -651,19 +651,29 @@
     const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
     
     // 功能6: 10人桌位置全集
-    const FULL_10MAX_POSITIONS = ['UTG', 'UTG+1', 'UTG+2', 'MP', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
+    // 10人桌位置全集 (順序：UTG -> +1 -> +2 -> +3 -> LJ -> HJ -> CO -> BTN -> SB -> BB)
+    const FULL_10MAX_POSITIONS = ['UTG', 'UTG+1', 'UTG+2', 'UTG+3', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
     
-    // 依序反灰移除順序：[UTG+2, UTG+1, MP, LJ, HJ, CO, UTG]
+    // 依人數動態定義有效位置：
+    // 10人：全部
+    // 9人：扣 +3
+    // 8人：扣 +3, +2
+    // 7人：扣 +3, +2, +1 -> [UTG, LJ, HJ, CO, BTN, SB, BB]
+    // 6人：再扣 LJ -> [UTG, HJ, CO, BTN, SB, BB]
+    // 5人：再扣 HJ -> [UTG, CO, BTN, SB, BB]
+    // 4人：再扣 CO -> [UTG, BTN, SB, BB]
+    // 3人：再扣 UTG -> [BTN, SB, BB]
+    // 2人：[D/SB, BB]
     const TABLE_POSITIONS_ACTIVE_MAP = {
-      10: ['UTG', 'UTG+1', 'UTG+2', 'MP', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'],
-      9:  ['UTG', 'UTG+1', 'MP', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'],
-      8:  ['UTG', 'MP', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'],
-      7:  ['MP', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'],
-      6:  ['LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'],
-      5:  ['HJ', 'CO', 'BTN', 'SB', 'BB'],
-      4:  ['CO', 'BTN', 'SB', 'BB'],
+      10: ['UTG', 'UTG+1', 'UTG+2', 'UTG+3', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'],
+      9:  ['UTG', 'UTG+1', 'UTG+2', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'],
+      8:  ['UTG', 'UTG+1', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'],
+      7:  ['UTG', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'],
+      6:  ['UTG', 'HJ', 'CO', 'BTN', 'SB', 'BB'],
+      5:  ['UTG', 'CO', 'BTN', 'SB', 'BB'],
+      4:  ['UTG', 'BTN', 'SB', 'BB'],
       3:  ['BTN', 'SB', 'BB'],
-      2:  ['D/SB', 'BB'] // 功能6: 2人時改為 [D/SB, BB]
+      2:  ['D/SB', 'BB']
     };
 
     const MATRIX_LABELS = [];
@@ -767,7 +777,7 @@
 
       const activePositions = TABLE_POSITIONS_ACTIVE_MAP[currentTableSize] || TABLE_POSITIONS_ACTIVE_MAP[9];
       
-      // 顯示基底：如果為 2 人桌，以 2 格呈現；其餘皆以全 10 格排版並將無效位反灰
+      // 2人單挑專屬排版，其餘以全 10 格排版並將不在桌況的位置反灰
       const displayPositions = (currentTableSize === 2) 
         ? ['D/SB', 'BB'] 
         : FULL_10MAX_POSITIONS;
@@ -775,7 +785,7 @@
       container.innerHTML = '';
       container.style.gridTemplateColumns = `repeat(${displayPositions.length}, minmax(0, 1fr))`;
 
-      // 檢查目前位置是否在有效名單內，若不在則跳至最後一個有效位
+      // 若目前選定的位置已不在現有人數清單中，自動退回最後一個有效位置
       if (!activePositions.includes(currentStagedPos)) {
         currentStagedPos = activePositions[activePositions.length - 1];
       }
@@ -784,12 +794,18 @@
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.dataset.pos = pos;
-        btn.textContent = pos;
+        
+        // 手機排版美化：UTG+1/2/3 顯示簡化代號防換行溢出
+        let displayLabel = pos;
+        if (pos === 'UTG+1') displayLabel = '+1';
+        else if (pos === 'UTG+2') displayLabel = '+2';
+        else if (pos === 'UTG+3') displayLabel = '+3';
+        btn.textContent = displayLabel;
         
         const isAvailable = activePositions.includes(pos);
 
         if (!isAvailable) {
-          // 功能6: 反灰禁用
+          // 不在當前人數的無效位置：反灰禁用
           btn.disabled = true;
           btn.className = 'staged-pos-btn py-1 rounded bg-slate-950/40 border border-slate-900 text-slate-700 cursor-not-allowed select-none';
         } else if (pos === currentStagedPos) {
@@ -1213,8 +1229,8 @@
       stateGroup.classList.add('hidden');
       fieldGroup.classList.add('hidden');
       textGroup.classList.add('hidden');
-
-      // 填充位置選單
+      
+      // 填充編輯視窗內的位置選單 (吃當前人數的有效清單)
       const posSelect = document.getElementById('edit-hand-pos');
       const activePositions = TABLE_POSITIONS_ACTIVE_MAP[currentTableSize] || TABLE_POSITIONS_ACTIVE_MAP[9];
       posSelect.innerHTML = '';
