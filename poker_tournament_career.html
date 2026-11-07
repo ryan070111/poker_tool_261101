@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>德州撲克錦標賽生涯戰情系統 v4</title>
+  <title>德州撲克錦標賽生涯戰情系統</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     html, body {
@@ -60,8 +60,8 @@
     <div class="flex items-center gap-2">
       <span class="text-xl sm:text-2xl">🏆</span>
       <div>
-        <h1 class="text-sm sm:text-base font-bold tracking-wide text-white">錦標賽生涯戰情系統 v4</h1>
-        <p class="text-[10px] sm:text-xs text-slate-400">10人/HU動態桌況 / 自動扣盲 / 自由備忘 / 歷程防呆反灰</p>
+        <h1 class="text-sm sm:text-base font-bold tracking-wide text-white">錦標賽生涯戰情系統</h1>
+        <p class="text-[10px] sm:text-xs text-slate-400">10人/HU動態桌況 / ±100盲碼步進 / 負號防呆 / 歷程即時編輯</p>
       </div>
     </div>
     
@@ -110,7 +110,7 @@
 
           <div>
             <label class="block text-slate-300 font-semibold mb-1">買入費用 (Buy-in / Currency)</label>
-            <input type="number" id="init-buyin" placeholder="如: 10000" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 font-mono">
+            <input type="number" id="init-buyin" step="100" min="0" placeholder="如: 10000" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 font-mono">
           </div>
 
           <div>
@@ -120,17 +120,17 @@
 
           <div>
             <label class="block text-slate-300 font-semibold mb-1">起始碼量 (Starting Stack)</label>
-            <input type="number" id="init-start-stack" placeholder="如: 30000" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 font-mono">
+            <input type="number" id="init-start-stack" step="100" min="0" placeholder="如: 30000" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 font-mono">
           </div>
 
           <div>
             <label class="block text-slate-300 font-semibold mb-1">起始大盲 (Initial BB)</label>
-            <input type="number" id="init-start-bb" placeholder="如: 200" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 font-mono">
+            <input type="number" id="init-start-bb" step="100" min="0" placeholder="如: 200" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 font-mono">
           </div>
 
           <div>
             <label class="block text-slate-300 font-semibold mb-1">預估總參賽人次 (Total Entries，可後補)</label>
-            <input type="number" id="init-total-entries" placeholder="如: 150" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 font-mono">
+            <input type="number" id="init-total-entries" min="1" placeholder="如: 150" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-blue-500 font-mono">
           </div>
         </div>
 
@@ -244,13 +244,13 @@
                 </div>
               </div>
 
-              <!-- 功能6: 上限10人桌 + 移除順序反灰 + HU 2人[D/SB, BB] -->
+              <!-- 桌上人數與動態位置按鈕 -->
               <div class="bg-slate-950 p-2 rounded-lg border border-slate-800 flex flex-col gap-1.5">
                 <div class="flex justify-between items-center text-[11px]">
                   <div class="flex items-center gap-1.5">
                     <span class="font-semibold text-slate-300">👥 桌上人數:</span>
                     <select id="table-player-count" onchange="onTableSizeChanged(parseInt(this.value))" class="bg-slate-900 border border-slate-700 rounded px-1.5 py-0.5 text-xs text-cyan-300 font-bold font-mono focus:outline-none focus:border-blue-500">
-                      <option value="10">10 人桌 (含 UTG+2)</option>
+                      <option value="10">10 人桌 (含 UTG+3)</option>
                       <option value="9" selected>9 人桌 (預設)</option>
                       <option value="8">8 人桌</option>
                       <option value="7">7 人桌</option>
@@ -289,15 +289,15 @@
                 </div>
               </div>
 
-              <!-- 功能1: 碼量左側加入大盲欄位，且未入池SB/BB自動扣除0.5/1.0BB -->
+              <!-- 大盲與籌碼 (單位改為 100 步進，SB/BB 棄牌自動扣除 0.5/1.0 BB) -->
               <div class="grid grid-cols-12 gap-2 text-xs">
                 <div class="col-span-3">
                   <label class="block text-slate-400 font-semibold mb-0.5">大盲 (BB)</label>
-                  <input type="number" id="staged-bb-value" oninput="onStagedBBChanged(this.value)" placeholder="BB" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 font-mono text-emerald-400 font-bold focus:outline-none focus:border-emerald-500">
+                  <input type="number" id="staged-bb-value" step="100" min="0" oninput="onStagedBBChanged(this.value)" placeholder="BB" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 font-mono text-emerald-400 font-bold focus:outline-none focus:border-emerald-500">
                 </div>
                 <div class="col-span-5">
                   <label class="block text-slate-300 font-semibold mb-0.5">此手後碼量 (Stack)</label>
-                  <input type="number" id="staged-resulting-stack" placeholder="剩餘碼量" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 font-mono text-amber-300 font-bold focus:outline-none focus:border-amber-500">
+                  <input type="number" id="staged-resulting-stack" step="100" min="0" placeholder="剩餘碼量" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 font-mono text-amber-300 font-bold focus:outline-none focus:border-amber-500">
                 </div>
                 <div class="col-span-4">
                   <label class="block text-slate-300 font-semibold mb-0.5">損益結果</label>
@@ -315,7 +315,7 @@
                 <textarea id="staged-notes" rows="2" placeholder="如: 翻牌 K-7-2r C-bet 1/3，轉牌掉 8 被 check-raise 後棄牌..." class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 text-xs text-slate-200 focus:outline-none focus:border-amber-500"></textarea>
               </div>
 
-              <!-- 功能5: 點清空跳窗確認 -->
+              <!-- 送出與清空按鈕 -->
               <div class="flex gap-2 pt-1">
                 <button type="button" onclick="confirmClearCurrentStagingForm()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-lg text-xs font-semibold transition">
                   清空
@@ -348,15 +348,15 @@
                 <span class="text-[10px] text-slate-500 font-mono">升盲或籌碼變動時即時紀錄</span>
               </div>
 
-              <!-- 盲碼打點輸入 -->
+              <!-- 盲碼打點輸入 (單位步進 100) -->
               <div class="grid grid-cols-12 gap-1.5 items-center">
                 <div class="col-span-4">
                   <label class="text-[10px] text-slate-400 mb-0.5 block">目前大盲 (BB)</label>
-                  <input type="number" id="quick-bb-input" placeholder="如 1000" class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-emerald-300 font-mono font-bold focus:outline-none focus:border-emerald-500">
+                  <input type="number" id="quick-bb-input" step="100" min="0" placeholder="如 1000" class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-emerald-300 font-mono font-bold focus:outline-none focus:border-emerald-500">
                 </div>
                 <div class="col-span-5">
                   <label class="text-[10px] text-slate-400 mb-0.5 block">目前碼量 (Stack)</label>
-                  <input type="number" id="quick-stack-input" placeholder="如 35000" class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-amber-300 font-mono font-bold focus:outline-none focus:border-amber-500">
+                  <input type="number" id="quick-stack-input" step="100" min="0" placeholder="如 35000" class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-amber-300 font-mono font-bold focus:outline-none focus:border-amber-500">
                 </div>
                 <div class="col-span-3 pt-3.5">
                   <button onclick="submitQuickBlindStackUpdate()" class="w-full py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-bold transition whitespace-nowrap">
@@ -365,7 +365,7 @@
                 </div>
               </div>
 
-              <!-- 錦標賽人數與均碼更新 -->
+              <!-- 錦標賽人數與均碼更新 (剩餘人數負號防呆 min="1") -->
               <div class="border-t border-slate-800/80 pt-2 flex flex-col gap-1.5">
                 <div class="flex justify-between items-center text-[11px]">
                   <span class="font-bold text-purple-400 flex items-center gap-1">
@@ -377,11 +377,11 @@
                 <div class="grid grid-cols-12 gap-1.5 items-center">
                   <div class="col-span-4">
                     <label class="text-[10px] text-slate-400 mb-0.5 block">剩餘人數 (Left)</label>
-                    <input type="number" id="quick-players-left-input" placeholder="如 45" class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-purple-300 font-mono font-bold focus:outline-none focus:border-purple-500">
+                    <input type="number" id="quick-players-left-input" min="1" oninput="sanitizeNonNegative(this, 1)" placeholder="如 45" class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-purple-300 font-mono font-bold focus:outline-none focus:border-purple-500">
                   </div>
                   <div class="col-span-5">
                     <label class="text-[10px] text-slate-400 mb-0.5 block">總參賽人次 (Entries)</label>
-                    <input type="number" id="quick-total-entries-input" placeholder="如 150" class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-slate-300 font-mono focus:outline-none focus:border-blue-500">
+                    <input type="number" id="quick-total-entries-input" min="1" oninput="sanitizeNonNegative(this, 1)" placeholder="如 150" class="w-full bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-slate-300 font-mono focus:outline-none focus:border-blue-500">
                   </div>
                   <div class="col-span-3 pt-3.5">
                     <button onclick="submitTournamentFieldUpdate()" class="w-full py-1 bg-purple-600 hover:bg-purple-500 text-white rounded text-xs font-bold transition whitespace-nowrap">
@@ -391,7 +391,7 @@
                 </div>
               </div>
 
-              <!-- 功能3: 自由備忘紀錄獨立輸入框 -->
+              <!-- 自由備忘紀錄獨立輸入框 -->
               <div class="border-t border-slate-800/80 pt-2 flex flex-col gap-1.5">
                 <div class="flex justify-between items-center text-[11px]">
                   <span class="font-bold text-cyan-400 flex items-center gap-1">
@@ -504,9 +504,7 @@
           <div class="grid grid-cols-2 gap-2">
             <div>
               <label class="text-[11px] text-slate-400 font-semibold mb-0.5 block">位置</label>
-              <select id="edit-hand-pos" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 text-xs text-amber-300 font-mono">
-                <!-- 動態注入可選位置 -->
-              </select>
+              <select id="edit-hand-pos" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 text-xs text-amber-300 font-mono"></select>
             </div>
             <div>
               <label class="text-[11px] text-slate-400 font-semibold mb-0.5 block">損益結果</label>
@@ -519,31 +517,31 @@
           </div>
         </div>
 
-        <!-- 盲碼編輯欄位 -->
+        <!-- 盲碼編輯欄位 (步進 100) -->
         <div id="edit-row-state-group" class="hidden grid grid-cols-2 gap-2">
           <div>
             <label class="text-[11px] text-slate-400 font-semibold mb-0.5 block">大盲 (BB)</label>
-            <input type="number" id="edit-state-bb" oninput="syncEditStateNotePreview()" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 font-mono text-emerald-300">
+            <input type="number" id="edit-state-bb" step="100" min="0" oninput="syncEditStateNotePreview()" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 font-mono text-emerald-300 font-bold">
           </div>
           <div>
             <label class="text-[11px] text-slate-400 font-semibold mb-0.5 block">碼量 (Stack)</label>
-            <input type="number" id="edit-state-stack" oninput="syncEditStateNotePreview()" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 font-mono text-amber-300">
+            <input type="number" id="edit-state-stack" step="100" min="0" oninput="syncEditStateNotePreview()" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 font-mono text-amber-300 font-bold">
           </div>
         </div>
 
-        <!-- 錦標賽人數編輯欄位 -->
+        <!-- 錦標賽人數編輯欄位 (負號防呆 min="1") -->
         <div id="edit-row-field-group" class="hidden grid grid-cols-2 gap-2">
           <div>
             <label class="text-[11px] text-slate-400 font-semibold mb-0.5 block">剩餘人數</label>
-            <input type="number" id="edit-field-left" oninput="syncEditFieldNotePreview()" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 font-mono text-purple-300">
+            <input type="number" id="edit-field-left" min="1" oninput="sanitizeNonNegative(this, 1); syncEditFieldNotePreview();" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 font-mono text-purple-300 font-bold">
           </div>
           <div>
             <label class="text-[11px] text-slate-400 font-semibold mb-0.5 block">總參賽人次</label>
-            <input type="number" id="edit-field-total" oninput="syncEditFieldNotePreview()" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 font-mono text-slate-300">
+            <input type="number" id="edit-field-total" min="1" oninput="sanitizeNonNegative(this, 1); syncEditFieldNotePreview();" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 font-mono text-slate-300 font-bold">
           </div>
         </div>
 
-        <!-- 功能3: 自由備忘專屬編輯欄位 -->
+        <!-- 自由備忘專屬編輯欄位 -->
         <div id="edit-row-text-group" class="hidden">
           <label class="text-[11px] text-slate-400 font-semibold mb-0.5 block">自由備忘文字</label>
           <input type="text" id="edit-text-content" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 text-xs text-cyan-300">
@@ -551,10 +549,10 @@
 
         <div id="edit-row-resulting-stack-container">
           <label class="text-[11px] text-slate-400 font-semibold mb-0.5 block">此記錄後碼量 (Resulting Stack)</label>
-          <input type="number" id="edit-hand-stack" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 font-mono text-cyan-300 font-bold">
+          <input type="number" id="edit-hand-stack" step="100" min="0" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 font-mono text-cyan-300 font-bold">
         </div>
 
-        <!-- 功能2: 當編輯賽事進度或盲碼時，備忘欄位反灰且唯讀 -->
+        <!-- 備忘備註 (若是盲碼或進度則反灰唯讀) -->
         <div>
           <label id="edit-notes-label" class="text-[11px] text-slate-400 font-semibold mb-0.5 block">復盤備忘/筆記</label>
           <textarea id="edit-hand-notes" rows="2" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 text-xs text-slate-200"></textarea>
@@ -590,7 +588,7 @@
       <div class="flex flex-col gap-2">
         <div>
           <label class="block text-slate-300 font-semibold mb-0.5">最終收穫 / 獎金 (Cashout)</label>
-          <input type="number" id="finish-cashout" placeholder="如: 45000 (若未進圈填 0)" class="w-full bg-slate-950 border border-slate-700 rounded p-2 text-emerald-400 font-bold font-mono focus:outline-none focus:border-emerald-500">
+          <input type="number" id="finish-cashout" step="100" min="0" placeholder="如: 45000 (若未進圈填 0)" class="w-full bg-slate-950 border border-slate-700 rounded p-2 text-emerald-400 font-bold font-mono focus:outline-none focus:border-emerald-500">
         </div>
 
         <div>
@@ -647,23 +645,13 @@
   </div>
 
   <script>
-    // --- 1. CORE MATRIX & RANKS ---
+    // --- 1. CORE MATRIX & POSITIONS ---
     const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
     
-    // 功能6: 10人桌位置全集
     // 10人桌位置全集 (順序：UTG -> +1 -> +2 -> +3 -> LJ -> HJ -> CO -> BTN -> SB -> BB)
     const FULL_10MAX_POSITIONS = ['UTG', 'UTG+1', 'UTG+2', 'UTG+3', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
     
-    // 依人數動態定義有效位置：
-    // 10人：全部
-    // 9人：扣 +3
-    // 8人：扣 +3, +2
-    // 7人：扣 +3, +2, +1 -> [UTG, LJ, HJ, CO, BTN, SB, BB]
-    // 6人：再扣 LJ -> [UTG, HJ, CO, BTN, SB, BB]
-    // 5人：再扣 HJ -> [UTG, CO, BTN, SB, BB]
-    // 4人：再扣 CO -> [UTG, BTN, SB, BB]
-    // 3人：再扣 UTG -> [BTN, SB, BB]
-    // 2人：[D/SB, BB]
+    // 依序反灰移除映射表 (9人扣+3, 8人扣+2, 7人扣+1, 6-2人再扣LJ,HJ,CO,UTG)
     const TABLE_POSITIONS_ACTIVE_MAP = {
       10: ['UTG', 'UTG+1', 'UTG+2', 'UTG+3', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'],
       9:  ['UTG', 'UTG+1', 'UTG+2', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'],
@@ -712,6 +700,15 @@
     let isCloudConfigured = false;
     let isAutoSyncEnabled = true;
     let durationTimer = null;
+
+    // 負號防呆工具函式
+    function sanitizeNonNegative(inputEl, minVal = 0) {
+      if (!inputEl) return;
+      let val = parseInt(inputEl.value);
+      if (isNaN(val) || val < minVal) {
+        inputEl.value = minVal;
+      }
+    }
 
     // --- 4. INITIALIZATION ---
     window.addEventListener('DOMContentLoaded', () => {
@@ -763,7 +760,7 @@
       if (timeInput) timeInput.value = str;
     }
 
-    // --- 5. 功能6: 動態桌人數與以反灰方式移除位置 ---
+    // --- 5. DYNAMIC POSITIONS & TABLE SIZES ---
     function onTableSizeChanged(size) {
       currentTableSize = size;
       localStorage.setItem('poker_career_table_size', size);
@@ -776,8 +773,6 @@
       if (!container) return;
 
       const activePositions = TABLE_POSITIONS_ACTIVE_MAP[currentTableSize] || TABLE_POSITIONS_ACTIVE_MAP[9];
-      
-      // 2人單挑專屬排版，其餘以全 10 格排版並將不在桌況的位置反灰
       const displayPositions = (currentTableSize === 2) 
         ? ['D/SB', 'BB'] 
         : FULL_10MAX_POSITIONS;
@@ -785,7 +780,6 @@
       container.innerHTML = '';
       container.style.gridTemplateColumns = `repeat(${displayPositions.length}, minmax(0, 1fr))`;
 
-      // 若目前選定的位置已不在現有人數清單中，自動退回最後一個有效位置
       if (!activePositions.includes(currentStagedPos)) {
         currentStagedPos = activePositions[activePositions.length - 1];
       }
@@ -795,17 +789,15 @@
         btn.type = 'button';
         btn.dataset.pos = pos;
         
-        // 手機排版美化：UTG+1/2/3 顯示簡化代號防換行溢出
         let displayLabel = pos;
         if (pos === 'UTG+1') displayLabel = '+1';
         else if (pos === 'UTG+2') displayLabel = '+2';
         else if (pos === 'UTG+3') displayLabel = '+3';
         btn.textContent = displayLabel;
-        
+
         const isAvailable = activePositions.includes(pos);
 
         if (!isAvailable) {
-          // 不在當前人數的無效位置：反灰禁用
           btn.disabled = true;
           btn.className = 'staged-pos-btn py-1 rounded bg-slate-950/40 border border-slate-900 text-slate-700 cursor-not-allowed select-none';
         } else if (pos === currentStagedPos) {
@@ -838,20 +830,20 @@
       calculateAutoBlindDeduction();
     }
 
+    // 位置輪轉方向修正（莊家順時針移動，個人位置逆向輪轉）
     function advancePositionToNext() {
       const activePositions = TABLE_POSITIONS_ACTIVE_MAP[currentTableSize] || TABLE_POSITIONS_ACTIVE_MAP[9];
       const currentIndex = activePositions.indexOf(currentStagedPos);
       if (currentIndex !== -1) {
-        // ✅ 正確邏輯：莊家順時針移動，你的位置逆向輪轉（+ activePositions.length 確保餘數不為負數）
         const nextIndex = (currentIndex - 1 + activePositions.length) % activePositions.length;
         setStagedPos(activePositions[nextIndex]);
       }
     }
 
-    // --- 6. 功能1: 大盲欄位與 SB/BB 棄牌自動扣除 0.5/1.0 BB ---
+    // --- 6. 大盲與籌碼連動 (SB/BB 棄牌自動扣除 0.5/1.0 BB) ---
     function onStagedBBChanged(val) {
       const num = parseFloat(val);
-      if (activeTourney && !isNaN(num) && num > 0) {
+      if (activeTourney && !isNaN(num) && num >= 0) {
         activeTourney.currentBB = num;
         document.getElementById('quick-bb-input').value = num;
       }
@@ -869,9 +861,7 @@
       const curStack = activeTourney.currentStack;
       const curBB = activeTourney.currentBB || 0;
 
-      // 只有在未入池且棄牌時才自動扣盲
       if (!isVpip && outcome === 'fold' && curBB > 0) {
-        // 功能6: HU時是 D/SB 扣 0.5BB, BB 扣 1.0BB
         if (currentStagedPos === 'SB' || currentStagedPos === 'D/SB') {
           document.getElementById('staged-resulting-stack').value = Math.max(0, curStack - (curBB * 0.5));
           return;
@@ -880,7 +870,6 @@
           return;
         }
       }
-      // 其他狀況維持當前碼量
       document.getElementById('staged-resulting-stack').value = curStack;
     }
 
@@ -955,7 +944,6 @@
       container.innerHTML = html;
     }
 
-    // 功能4: 按下立即帶入編輯時，若上面有手牌跳窗提示
     function popQueueItemToActive(id) {
       const idx = waitingHandQueue.findIndex(x => x.id === id);
       if (idx === -1) return;
@@ -1004,7 +992,6 @@
       calculateAutoBlindDeduction();
     }
 
-    // 功能5: 點清空跳窗確認
     function confirmClearCurrentStagingForm() {
       if (currentStagedHand !== null) {
         if (!confirm('確定要清空當前編輯手牌的輸入進度嗎？')) return;
@@ -1132,16 +1119,22 @@
         return;
       }
 
-      const leftVal = parseInt(document.getElementById('quick-players-left-input').value);
-      const totalVal = parseInt(document.getElementById('quick-total-entries-input').value);
+      let leftVal = parseInt(document.getElementById('quick-players-left-input').value);
+      let totalVal = parseInt(document.getElementById('quick-total-entries-input').value);
 
       if (isNaN(leftVal) && isNaN(totalVal)) {
         alert('請輸入剩餘人數或總參賽人次！');
         return;
       }
 
-      if (!isNaN(leftVal) && leftVal > 0) activeTourney.playersLeft = leftVal;
-      if (!isNaN(totalVal) && totalVal > 0) activeTourney.totalEntries = totalVal;
+      if (!isNaN(leftVal)) {
+        leftVal = Math.max(1, leftVal);
+        activeTourney.playersLeft = leftVal;
+      }
+      if (!isNaN(totalVal)) {
+        totalVal = Math.max(1, totalVal);
+        activeTourney.totalEntries = totalVal;
+      }
 
       calculateAndSetAverageStack();
 
@@ -1168,7 +1161,6 @@
       alert(`已更新錦標賽人數！均碼: ${avgStr} (${avgBBStr})`);
     }
 
-    // 功能3: 自由備忘紀錄提交
     function submitQuickFreeNote() {
       if (!activeTourney) {
         alert('請先開始一場錦標賽！');
@@ -1209,7 +1201,7 @@
       }
     }
 
-    // --- 9. 功能2 & 功能3: 歷程編輯彈跳視窗（含反灰與自動更新） ---
+    // --- 9. 歷程編輯彈跳視窗（反灰唯讀與動態連動） ---
     function openEditHandModal(logId) {
       if (!activeTourney) return;
       const log = activeTourney.hands.find(x => x.id === logId);
@@ -1229,8 +1221,7 @@
       stateGroup.classList.add('hidden');
       fieldGroup.classList.add('hidden');
       textGroup.classList.add('hidden');
-      
-      // 填充編輯視窗內的位置選單 (吃當前人數的有效清單)
+
       const posSelect = document.getElementById('edit-hand-pos');
       const activePositions = TABLE_POSITIONS_ACTIVE_MAP[currentTableSize] || TABLE_POSITIONS_ACTIVE_MAP[9];
       posSelect.innerHTML = '';
@@ -1247,7 +1238,6 @@
         posSelect.value = log.pos || 'BTN';
         document.getElementById('edit-hand-outcome').value = log.outcome || 'fold';
 
-        // 手牌模式：備忘可自由編輯
         notesEl.disabled = false;
         notesEl.className = 'w-full bg-slate-950 border border-slate-700 rounded p-1.5 text-xs text-slate-200';
         notesLabel.textContent = '復盤備忘/筆記';
@@ -1257,7 +1247,6 @@
         document.getElementById('edit-state-bb').value = log.bb;
         document.getElementById('edit-state-stack').value = log.stack;
 
-        // 功能2: 盲碼模式：備忘反灰唯讀
         notesEl.disabled = true;
         notesEl.className = 'w-full bg-slate-950/60 border border-slate-800 rounded p-1.5 text-xs text-slate-500 cursor-not-allowed';
         notesLabel.textContent = '自動產生之說明 (依上方數值連動)';
@@ -1267,7 +1256,6 @@
         document.getElementById('edit-field-left').value = log.playersLeft;
         document.getElementById('edit-field-total').value = log.totalEntries;
 
-        // 功能2: 賽事進度模式：備忘反灰唯讀
         notesEl.disabled = true;
         notesEl.className = 'w-full bg-slate-950/60 border border-slate-800 rounded p-1.5 text-xs text-slate-500 cursor-not-allowed';
         notesLabel.textContent = '自動產生之說明 (依上方數值連動)';
@@ -1328,8 +1316,10 @@
         log.notes = `盲注更新: ${log.bb} | 碼量: ${log.stack.toLocaleString()} (${bbCount} BB)`;
         activeTourney.currentBB = log.bb;
       } else if (log.type === 'field') {
-        log.playersLeft = parseInt(document.getElementById('edit-field-left').value) || log.playersLeft;
-        log.totalEntries = parseInt(document.getElementById('edit-field-total').value) || log.totalEntries;
+        let left = parseInt(document.getElementById('edit-field-left').value);
+        let total = parseInt(document.getElementById('edit-field-total').value);
+        if (!isNaN(left)) log.playersLeft = Math.max(1, left);
+        if (!isNaN(total)) log.totalEntries = Math.max(1, total);
         activeTourney.playersLeft = log.playersLeft;
         activeTourney.totalEntries = log.totalEntries;
         calculateAndSetAverageStack();
@@ -1571,7 +1561,7 @@
       const startTime = document.getElementById('init-start-time').value || new Date().toISOString();
       const startStack = parseFloat(document.getElementById('init-start-stack').value) || 30000;
       const startBB = parseFloat(document.getElementById('init-start-bb').value) || 200;
-      const totalEntries = parseInt(document.getElementById('init-total-entries').value) || 0;
+      const totalEntries = Math.max(0, parseInt(document.getElementById('init-total-entries').value) || 0);
 
       activeTourney = {
         id: 't_' + Date.now(),
@@ -1737,7 +1727,7 @@
       }, 1000);
     }
 
-    // --- 12. STORAGE & FIREBASE ---
+    // --- 11. STORAGE & FIREBASE ---
     function saveStorageData() {
       localStorage.setItem('poker_career_active', JSON.stringify(activeTourney));
       localStorage.setItem('poker_career_history', JSON.stringify(careerTournaments));
@@ -1910,7 +1900,9 @@
         }
 
         const data = doc.data();
-        if (confirm(`偵測到雲端資料 (最後同步: ${data.updatedAt || '未知'})！\n\n是否以雲端生涯資料【直接覆蓋】本地端？`)) {
+        if (confirm(`偵測到雲端資料 (最後同步: ${data.updatedAt || '未知'})！
+
+是否以雲端生涯資料【直接覆蓋】本地端？`)) {
           activeTourney = data.activeTourney || null;
           careerTournaments = data.careerTournaments || [];
           waitingHandQueue = data.waitingHandQueue || [];
