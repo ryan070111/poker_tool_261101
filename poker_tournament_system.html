@@ -1095,10 +1095,12 @@
       else if (hour < 11) greeting = '早安，今天也是專注的一天！';
       else if (hour < 17) greeting = '下午好，調整呼吸迎接每一局！';
       else greeting = '晚上好，祝今晚好運常伴！';
-      document.getElementById('dash-greeting').textContent = greeting;
+      const elGreet = document.getElementById('dash-greeting');
+      if (elGreet) elGreet.textContent = greeting;
 
       const totalGames = careerTournaments.length;
-      document.getElementById('dash-session-hint').textContent = `你已累計記錄 ${totalGames} 場賽事，大數據正在幫你提煉行為特徵。`;
+      const elHint = document.getElementById('dash-session-hint');
+      if (elHint) elHint.textContent = `你已累計記錄 ${totalGames} 場賽事，大數據正在幫你提煉行為特徵。`;
 
       const recent15 = careerTournaments.slice(0, 15);
       let rBuyin = 0, rCashout = 0, rMins = 0;
@@ -1110,42 +1112,53 @@
 
       const rProfit = rCashout - rBuyin;
       const profitEl = document.getElementById('kpi-recent-profit');
-      profitEl.textContent = `${rProfit >= 0 ? '+' : '-'}${Math.abs(rProfit).toLocaleString()} NTD`;
-      profitEl.className = `text-2xl sm:text-3xl font-black font-mono mt-1 ${rProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+      if (profitEl) {
+        profitEl.textContent = `${rProfit >= 0 ? '+' : '-'}${Math.abs(rProfit).toLocaleString()} NTD`;
+        profitEl.className = `text-2xl sm:text-3xl font-black font-mono mt-1 ${rProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+      }
 
       const rHours = rMins > 0 ? (rMins / 60) : 1;
       const hourly = Math.round(rProfit / rHours);
-      document.getElementById('kpi-hourly-rate').textContent = `${hourly >= 0 ? '+' : ''}${hourly.toLocaleString()} NTD`;
+      const elHourly = document.getElementById('kpi-hourly-rate');
+      if (elHourly) elHourly.textContent = `${hourly >= 0 ? '+' : ''}${hourly.toLocaleString()} NTD`;
+      
       const roi = rBuyin > 0 ? ((rProfit / rBuyin) * 100).toFixed(1) : 0;
-      document.getElementById('kpi-roi').textContent = `${roi >= 0 ? '+' : ''}${roi}%`;
+      const elRoi = document.getElementById('kpi-roi');
+      if (elRoi) elRoi.textContent = `${roi >= 0 ? '+' : ''}${roi}%`;
 
       const totalNet = careerTournaments.reduce((acc, t) => acc + (t.netProfit !== undefined ? t.netProfit : ((t.cashout || 0) - (t.buyin || 0))), 0);
       const target = 100000;
       const pct = Math.max(0, Math.min(100, Math.round((totalNet / target) * 100)));
-      document.getElementById('goal-progress-percent').textContent = `${pct}%`;
-      document.getElementById('goal-progress-detail').textContent = `${totalNet.toLocaleString()} / 100,000 NTD`;
-      document.getElementById('goal-progress-bar').style.width = `${pct}%`;
+      
+      const elGoalPct = document.getElementById('goal-progress-percent');
+      if (elGoalPct) elGoalPct.textContent = `${pct}%`;
+      const elGoalDetail = document.getElementById('goal-progress-detail');
+      if (elGoalDetail) elGoalDetail.textContent = `${totalNet.toLocaleString()} / 100,000 NTD`;
+      const elGoalBar = document.getElementById('goal-progress-bar');
+      if (elGoalBar) elGoalBar.style.width = `${pct}%`;
 
       computeBehaviorTags();
 
       const previewEl = document.getElementById('dash-recent-list');
-      if (recent15.length === 0) {
-        previewEl.innerHTML = '<div class="text-slate-600 py-4 text-center italic">尚未有已結算的錦標賽資料。</div>';
-        return;
+      if (previewEl) {
+        if (recent15.length === 0) {
+          previewEl.innerHTML = '<div class="text-slate-600 py-4 text-center italic">尚未有已結算的錦標賽資料。</div>';
+          return;
+        }
+        let html = '';
+        recent15.slice(0, 4).forEach(t => {
+          const net = t.netProfit !== undefined ? t.netProfit : ((t.cashout || 0) - (t.buyin || 0));
+          const color = net >= 0 ? 'text-emerald-400' : 'text-rose-400';
+          html += `<div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex justify-between items-center">
+            <div>
+              <span class="font-bold text-white">${t.name}</span>
+              <span class="text-[10px] text-slate-500 ml-1.5">(${t.startTime ? t.startTime.slice(0, 10) : t.date || '--'})</span>
+            </div>
+            <span class="font-bold ${color}">${net >= 0 ? '+' : ''}${net.toLocaleString()} NTD</span>
+          </div>`;
+        });
+        previewEl.innerHTML = html;
       }
-      let html = '';
-      recent15.slice(0, 4).forEach(t => {
-        const net = t.netProfit !== undefined ? t.netProfit : ((t.cashout || 0) - (t.buyin || 0));
-        const color = net >= 0 ? 'text-emerald-400' : 'text-rose-400';
-        html += `<div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex justify-between items-center">
-          <div>
-            <span class="font-bold text-white">${t.name}</span>
-            <span class="text-[10px] text-slate-500 ml-1.5">(${t.startTime ? t.startTime.slice(0, 10) : t.date || '--'})</span>
-          </div>
-          <span class="font-bold ${color}">${net >= 0 ? '+' : ''}${net.toLocaleString()} NTD</span>
-        </div>`;
-      });
-      previewEl.innerHTML = html;
     }
 
     function computeBehaviorTags() {
@@ -1171,19 +1184,25 @@
       const threeBetRate = totalHands > 0 ? (threeBetHands / totalHands) * 100 : 8;
 
       const vpipTag = document.getElementById('tag-vpip-val');
-      if (vpipRate > 32) { vpipTag.textContent = '偏高 (Loose)'; vpipTag.className = 'text-rose-400 font-bold text-xs'; }
-      else if (vpipRate < 18) { vpipTag.textContent = '偏低 (Tight)'; vpipTag.className = 'text-cyan-400 font-bold text-xs'; }
-      else { vpipTag.textContent = '健康 (20-30%)'; vpipTag.className = 'text-emerald-400 font-bold text-xs'; }
+      if (vpipTag) {
+        if (vpipRate > 32) { vpipTag.textContent = '偏高 (Loose)'; vpipTag.className = 'text-rose-400 font-bold text-xs'; }
+        else if (vpipRate < 18) { vpipTag.textContent = '偏低 (Tight)'; vpipTag.className = 'text-cyan-400 font-bold text-xs'; }
+        else { vpipTag.textContent = '健康 (20-30%)'; vpipTag.className = 'text-emerald-400 font-bold text-xs'; }
+      }
 
       const tbTag = document.getElementById('tag-3b-val');
-      if (threeBetRate > 12) { tbTag.textContent = '3bet 偏多 ↗'; tbTag.className = 'text-rose-400 font-bold text-xs'; }
-      else if (threeBetRate < 5) { tbTag.textContent = '3bet 偏少 ↘'; tbTag.className = 'text-cyan-400 font-bold text-xs'; }
-      else { tbTag.textContent = '標準 (7-10%)'; tbTag.className = 'text-emerald-400 font-bold text-xs'; }
+      if (tbTag) {
+        if (threeBetRate > 12) { tbTag.textContent = '3bet 偏多 ↗'; tbTag.className = 'text-rose-400 font-bold text-xs'; }
+        else if (threeBetRate < 5) { tbTag.textContent = '3bet 偏少 ↘'; tbTag.className = 'text-cyan-400 font-bold text-xs'; }
+        else { tbTag.textContent = '標準 (7-10%)'; tbTag.className = 'text-emerald-400 font-bold text-xs'; }
+      }
 
       const rebuyTag = document.getElementById('tag-rebuy-val');
-      const avgRebuy = careerTournaments.length > 0 ? (totalRebuys / careerTournaments.length) : 0;
-      if (avgRebuy > 1.2) { rebuyTag.textContent = '偏高 (多次補碼)'; rebuyTag.className = 'text-amber-400 font-bold text-xs'; }
-      else { rebuyTag.textContent = '健康 (控制良好)'; rebuyTag.className = 'text-emerald-400 font-bold text-xs'; }
+      if (rebuyTag) {
+        const avgRebuy = careerTournaments.length > 0 ? (totalRebuys / careerTournaments.length) : 0;
+        if (avgRebuy > 1.2) { rebuyTag.textContent = '偏高 (多次補碼)'; rebuyTag.className = 'text-amber-400 font-bold text-xs'; }
+        else { rebuyTag.textContent = '健康 (控制良好)'; rebuyTag.className = 'text-emerald-400 font-bold text-xs'; }
+      }
     }
 
     // --- TAB 2: Web Speech 語音輸入 ---
@@ -1196,8 +1215,10 @@
       speechRecognitionInstance.interimResults = false;
 
       speechRecognitionInstance.onstart = () => {
-        document.getElementById('speech-btn-text').textContent = '正在聆聽...';
-        document.getElementById('speech-dot').className = 'w-2 h-2 rounded-full bg-emerald-400 animate-ping';
+        const txt = document.getElementById('speech-btn-text');
+        if (txt) txt.textContent = '正在聆聽...';
+        const dot = document.getElementById('speech-dot');
+        if (dot) dot.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-ping';
       };
 
       speechRecognitionInstance.onresult = (e) => {
@@ -1216,8 +1237,10 @@
     }
 
     function resetSpeechBtn() {
-      document.getElementById('speech-btn-text').textContent = '🎙️ 語音辨識輸入';
-      document.getElementById('speech-dot').className = 'w-2 h-2 rounded-full bg-rose-500';
+      const txt = document.getElementById('speech-btn-text');
+      if (txt) txt.textContent = '🎙️ 語音辨識輸入';
+      const dot = document.getElementById('speech-dot');
+      if (dot) dot.className = 'w-2 h-2 rounded-full bg-rose-500';
     }
 
     function startSpeechRecognition() {
@@ -1238,7 +1261,8 @@
 
     function parseSpeechAndFillForm(text) {
       showToast(`聽到：「${text}」`, 'info');
-      document.getElementById('staged-notes').value = text;
+      const notesEl = document.getElementById('staged-notes');
+      if (notesEl) notesEl.value = text;
 
       const upper = text.toUpperCase();
       let matchedHand = null;
@@ -1265,7 +1289,8 @@
       if (numMatch) {
         const stackVal = parseInt(numMatch[0]);
         if (stackVal > 100) {
-          document.getElementById('staged-resulting-stack').value = stackVal;
+          const stkEl = document.getElementById('staged-resulting-stack');
+          if (stkEl) stkEl.value = stackVal;
           onResultingStackInputChanged(stackVal);
         }
       }
@@ -1317,7 +1342,8 @@
         container.appendChild(btn);
       });
 
-      document.getElementById('staged-pos-label').textContent = currentStagedPos;
+      const lblPos = document.getElementById('staged-pos-label');
+      if (lblPos) lblPos.textContent = currentStagedPos;
     }
 
     function setStagedPos(pos) {
@@ -1328,7 +1354,8 @@
           else btn.className = 'py-1 rounded bg-slate-950 border border-slate-800 text-slate-400 hover:bg-slate-900';
         }
       });
-      document.getElementById('staged-pos-label').textContent = pos;
+      const lblPos = document.getElementById('staged-pos-label');
+      if (lblPos) lblPos.textContent = pos;
       calculateAutoBlindDeduction();
     }
 
@@ -1345,7 +1372,8 @@
       const num = parseFloat(val);
       if (activeTourney && !isNaN(num) && num >= 0) {
         activeTourney.currentBB = num;
-        document.getElementById('quick-bb-input').value = num;
+        const qbb = document.getElementById('quick-bb-input');
+        if (qbb) qbb.value = num;
       }
       calculateAutoBlindDeduction();
     }
@@ -1363,34 +1391,38 @@
       const outcomeSelect = document.getElementById('staged-outcome');
       const vpipChk = document.getElementById('staged-vpip');
 
-      if (num > cur) {
-        outcomeSelect.value = 'win';
-        vpipChk.checked = true;
-      } else if (num < cur) {
-        outcomeSelect.value = 'loss';
-        vpipChk.checked = true;
-      } else {
-        if (!vpipChk.checked) outcomeSelect.value = 'fold';
+      if (outcomeSelect && vpipChk) {
+        if (num > cur) {
+          outcomeSelect.value = 'win';
+          vpipChk.checked = true;
+        } else if (num < cur) {
+          outcomeSelect.value = 'loss';
+          vpipChk.checked = true;
+        } else {
+          if (!vpipChk.checked) outcomeSelect.value = 'fold';
+        }
       }
     }
 
     function calculateAutoBlindDeduction() {
       if (!activeTourney) return;
-      const outcome = document.getElementById('staged-outcome').value;
-      const isVpip = document.getElementById('staged-vpip').checked;
+      const outcomeEl = document.getElementById('staged-outcome');
+      const outcome = outcomeEl ? outcomeEl.value : 'fold';
+      const isVpip = document.getElementById('staged-vpip')?.checked || false;
       const curStack = activeTourney.currentStack;
       const curBB = activeTourney.currentBB || 0;
+      const stkInput = document.getElementById('staged-resulting-stack');
 
-      if (!isVpip && outcome === 'fold' && curBB > 0) {
+      if (!isVpip && outcome === 'fold' && curBB > 0 && stkInput) {
         if (currentStagedPos === 'SB' || currentStagedPos === 'D/SB') {
-          document.getElementById('staged-resulting-stack').value = Math.max(0, curStack - (curBB * 0.5));
+          stkInput.value = Math.max(0, curStack - (curBB * 0.5));
           return;
         } else if (currentStagedPos === 'BB') {
-          document.getElementById('staged-resulting-stack').value = Math.max(0, curStack - (curBB * 1.0));
+          stkInput.value = Math.max(0, curStack - (curBB * 1.0));
           return;
         }
       }
-      document.getElementById('staged-resulting-stack').value = curStack;
+      if (stkInput) stkInput.value = curStack;
     }
 
     function onMatrixCellClicked(label) {
@@ -1421,8 +1453,10 @@
       currentStagedTime = time || new Date().toLocaleTimeString();
       if (pos) setStagedPos(pos);
 
-      document.getElementById('staged-hand-display').textContent = hand;
-      document.getElementById('staged-time-badge').textContent = `時間: ${currentStagedTime}`;
+      const dEl = document.getElementById('staged-hand-display');
+      if (dEl) dEl.textContent = hand;
+      const tEl = document.getElementById('staged-time-badge');
+      if (tEl) tEl.textContent = `時間: ${currentStagedTime}`;
       calculateAutoBlindDeduction();
     }
 
@@ -1440,7 +1474,7 @@
       const countLabel = document.getElementById('waiting-queue-count');
       if (!container) return;
 
-      countLabel.textContent = waitingHandQueue.length;
+      if (countLabel) countLabel.textContent = waitingHandQueue.length;
       if (waitingHandQueue.length === 0) {
         container.innerHTML = '<span class="text-slate-600 text-[10px] italic">目前佇列中無其他暫存手牌。</span>';
         return;
@@ -1451,8 +1485,8 @@
         html += `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-950/80 border border-amber-500/50 text-amber-300 font-mono text-[11px] font-bold shadow-sm">
           <span>#${idx + 1} ${item.hand}</span>
           <span class="text-[9px] text-amber-500 font-normal">(${item.time})</span>
-          <button onclick="popQueueItemToActive('${item.id}')" title="帶入編輯" class="text-emerald-400 hover:text-emerald-300 ml-1 font-bold cursor-pointer">▲</button>
-          <button onclick="removeQueueItem('${item.id}')" title="刪除" class="text-rose-400 hover:text-rose-300 font-bold cursor-pointer">✕</button>
+          <button onclick="popQueueItemToActive('${item.id}')" title="帶入編輯" class="text-emerald-400 hover:text-emerald-300 ml-1 font-bold">▲</button>
+          <button onclick="removeQueueItem('${item.id}')" title="刪除" class="text-rose-400 hover:text-rose-300 font-bold">✕</button>
         </span>`;
       });
       container.innerHTML = html;
@@ -1478,6 +1512,7 @@
 
     function setManualStagedHand() {
       const input = document.getElementById('manual-hand-input');
+      if (!input) return;
       const val = input.value.trim().toUpperCase();
       if (!val) return;
       const found = MATRIX_LABELS.find(x => x.toUpperCase() === val);
@@ -1489,11 +1524,11 @@
       const outcomeSelect = document.getElementById('staged-outcome');
       const actionSelect = document.getElementById('staged-action-type');
       if (!isVpip) {
-        outcomeSelect.value = 'fold';
-        actionSelect.value = '純棄牌 (Fold)';
+        if (outcomeSelect) outcomeSelect.value = 'fold';
+        if (actionSelect) actionSelect.value = '純棄牌 (Fold)';
       } else {
-        if (outcomeSelect.value === 'fold') outcomeSelect.value = 'loss';
-        if (actionSelect.value === '純棄牌 (Fold)') actionSelect.value = '無人加注 (RFI Open)';
+        if (outcomeSelect && outcomeSelect.value === 'fold') outcomeSelect.value = 'loss';
+        if (actionSelect && actionSelect.value === '純棄牌 (Fold)') actionSelect.value = '無人加注 (RFI Open)';
       }
       calculateAutoBlindDeduction();
     }
@@ -1508,14 +1543,21 @@
     function clearCurrentStagingForm() {
       currentStagedHand = null;
       currentStagedTime = null;
-      document.getElementById('staged-hand-display').textContent = '--';
-      document.getElementById('staged-time-badge').textContent = '尚未選取手牌';
-      document.getElementById('staged-vpip').checked = false;
-      document.getElementById('staged-action-type').value = '純棄牌 (Fold)';
-      document.getElementById('staged-outcome').value = 'fold';
-      document.getElementById('staged-notes').value = '';
+      const dEl = document.getElementById('staged-hand-display');
+      if (dEl) dEl.textContent = '--';
+      const tEl = document.getElementById('staged-time-badge');
+      if (tEl) tEl.textContent = '尚未選取手牌';
+      const vEl = document.getElementById('staged-vpip');
+      if (vEl) vEl.checked = false;
+      const aEl = document.getElementById('staged-action-type');
+      if (aEl) aEl.value = '純棄牌 (Fold)';
+      const oEl = document.getElementById('staged-outcome');
+      if (oEl) oEl.value = 'fold';
+      const nEl = document.getElementById('staged-notes');
+      if (nEl) nEl.value = '';
       if (activeTourney) {
-        document.getElementById('staged-resulting-stack').value = activeTourney.currentStack;
+        const stkEl = document.getElementById('staged-resulting-stack');
+        if (stkEl) stkEl.value = activeTourney.currentStack;
       }
     }
 
@@ -1523,11 +1565,11 @@
       if (!activeTourney) { showToast('請先建立賽事！', 'warn'); return; }
       if (!currentStagedHand) { showToast('請先從矩陣選取手牌！', 'warn'); return; }
 
-      const isVpip = document.getElementById('staged-vpip').checked;
-      const actionType = document.getElementById('staged-action-type').value;
-      const resultingStack = parseFloat(document.getElementById('staged-resulting-stack').value) || activeTourney.currentStack;
-      let outcome = document.getElementById('staged-outcome').value;
-      const notes = document.getElementById('staged-notes').value.trim();
+      const isVpip = document.getElementById('staged-vpip')?.checked || false;
+      const actionType = document.getElementById('staged-action-type')?.value || '純棄牌 (Fold)';
+      const resultingStack = parseFloat(document.getElementById('staged-resulting-stack')?.value) || activeTourney.currentStack;
+      let outcome = document.getElementById('staged-outcome')?.value || 'fold';
+      const notes = document.getElementById('staged-notes')?.value.trim() || '';
 
       const chipDiff = resultingStack - activeTourney.currentStack;
       const curBB = activeTourney.currentBB || 1;
@@ -1583,9 +1625,12 @@
     function openRebuyModal() {
       if (!activeTourney) return;
       document.getElementById('modal-rebuy').classList.remove('hidden');
-      document.getElementById('rebuy-amount-input').value = activeTourney.buyin || 10000;
-      document.getElementById('rebuy-new-stack-input').value = activeTourney.currentStack + (activeTourney.startStack || 30000);
-      document.getElementById('rebuy-current-bb-input').value = activeTourney.currentBB || 1000;
+      const amtEl = document.getElementById('rebuy-amount-input');
+      if (amtEl) amtEl.value = activeTourney.buyin || 10000;
+      const nStkEl = document.getElementById('rebuy-new-stack-input');
+      if (nStkEl) nStkEl.value = activeTourney.currentStack + (activeTourney.startStack || 30000);
+      const bbEl = document.getElementById('rebuy-current-bb-input');
+      if (bbEl) bbEl.value = activeTourney.currentBB || 1000;
     }
 
     function closeRebuyModal() {
@@ -1594,9 +1639,9 @@
 
     function confirmSubmitRebuy() {
       if (!activeTourney) return;
-      const amount = parseFloat(document.getElementById('rebuy-amount-input').value);
-      const newStack = parseFloat(document.getElementById('rebuy-new-stack-input').value);
-      const curBB = parseFloat(document.getElementById('rebuy-current-bb-input').value);
+      const amount = parseFloat(document.getElementById('rebuy-amount-input')?.value);
+      const newStack = parseFloat(document.getElementById('rebuy-new-stack-input')?.value);
+      const curBB = parseFloat(document.getElementById('rebuy-current-bb-input')?.value);
 
       if (isNaN(amount) || amount <= 0) return;
       if (!isNaN(curBB) && curBB > 0) activeTourney.currentBB = curBB;
@@ -1629,10 +1674,14 @@
     function openEditTourneyInfoModal() {
       if (!activeTourney) return;
       document.getElementById('modal-edit-tourney-info').classList.remove('hidden');
-      document.getElementById('editinfo-name').value = activeTourney.name || '';
-      document.getElementById('editinfo-buyin').value = activeTourney.buyin || 0;
-      document.getElementById('editinfo-rebuy-count').value = activeTourney.rebuyCount || 0;
-      document.getElementById('editinfo-prize-pool').value = activeTourney.prizePool || '';
+      const nEl = document.getElementById('editinfo-name');
+      if (nEl) nEl.value = activeTourney.name || '';
+      const bEl = document.getElementById('editinfo-buyin');
+      if (bEl) bEl.value = activeTourney.buyin || 0;
+      const rEl = document.getElementById('editinfo-rebuy-count');
+      if (rEl) rEl.value = activeTourney.rebuyCount || 0;
+      const pEl = document.getElementById('editinfo-prize-pool');
+      if (pEl) pEl.value = activeTourney.prizePool || '';
     }
 
     function closeEditTourneyInfoModal() {
@@ -1641,10 +1690,10 @@
 
     function saveTourneyInfoChanges() {
       if (!activeTourney) return;
-      const name = document.getElementById('editinfo-name').value.trim();
-      const buyin = parseFloat(document.getElementById('editinfo-buyin').value);
-      const rebuyCount = parseInt(document.getElementById('editinfo-rebuy-count').value);
-      const prizePool = parseFloat(document.getElementById('editinfo-prize-pool').value);
+      const name = document.getElementById('editinfo-name')?.value.trim();
+      const buyin = parseFloat(document.getElementById('editinfo-buyin')?.value);
+      const rebuyCount = parseInt(document.getElementById('editinfo-rebuy-count')?.value);
+      const prizePool = parseFloat(document.getElementById('editinfo-prize-pool')?.value);
 
       if (name) activeTourney.name = name;
       if (!isNaN(buyin) && buyin >= 0) activeTourney.buyin = buyin;
@@ -1679,18 +1728,19 @@
 
     function changeLogHeight(cls) {
       const el = document.getElementById('live-log-container');
-      el.className = `${cls} overflow-y-auto space-y-1 text-xs font-mono pr-1 divide-y divide-slate-800/60`;
+      if (el) el.className = `${cls} overflow-y-auto space-y-1 text-xs font-mono pr-1 divide-y divide-slate-800/60`;
     }
 
     function submitQuickBlindStackUpdate() {
       if (!activeTourney) return;
-      const bbVal = parseFloat(document.getElementById('quick-bb-input').value);
-      const stackVal = parseFloat(document.getElementById('quick-stack-input').value);
+      const bbVal = parseFloat(document.getElementById('quick-bb-input')?.value);
+      const stackVal = parseFloat(document.getElementById('quick-stack-input')?.value);
       if (isNaN(bbVal) && isNaN(stackVal)) return;
 
       if (!isNaN(bbVal) && bbVal > 0) {
         activeTourney.currentBB = bbVal;
-        document.getElementById('staged-bb-value').value = bbVal;
+        const sbb = document.getElementById('staged-bb-value');
+        if (sbb) sbb.value = bbVal;
       }
       if (!isNaN(stackVal) && stackVal >= 0) activeTourney.currentStack = stackVal;
 
@@ -1717,8 +1767,8 @@
 
     function submitTournamentFieldUpdate() {
       if (!activeTourney) return;
-      let leftVal = parseInt(document.getElementById('quick-players-left-input').value);
-      let totalVal = parseInt(document.getElementById('quick-total-entries-input').value);
+      let leftVal = parseInt(document.getElementById('quick-players-left-input')?.value);
+      let totalVal = parseInt(document.getElementById('quick-total-entries-input')?.value);
 
       if (!isNaN(leftVal)) activeTourney.playersLeft = Math.max(1, leftVal);
       if (!isNaN(totalVal)) activeTourney.totalEntries = Math.max(1, totalVal);
@@ -1876,6 +1926,21 @@
       if (isAutoSyncEnabled) triggerAutoSyncIfEnabled();
     }
 
+    function recalculateHandStats() {
+      if (!activeTourney) return;
+      const stats = {};
+      activeTourney.hands.forEach(h => {
+        if (!h.type || h.type === 'hand') {
+          if (!stats[h.hand]) stats[h.hand] = { total: 0, fold: 0, loss: 0, win: 0 };
+          stats[h.hand].total++;
+          if (h.outcome === 'win') stats[h.hand].win++;
+          else if (h.outcome === 'loss') stats[h.hand].loss++;
+          else stats[h.hand].fold++;
+        }
+      });
+      activeTourney.handStats = stats;
+    }
+
     // --- TAB 3: 賽後覆盤與歷程回放 ---
     function openTourneyDetailModal(tourneyId) {
       const tourney = careerTournaments.find(t => t.id === tourneyId);
@@ -1887,54 +1952,58 @@
       const net = tourney.netProfit !== undefined ? tourney.netProfit : ((tourney.cashout || 0) - (tourney.buyin || 0));
       const netColor = net >= 0 ? 'text-emerald-400' : 'text-rose-400';
 
-      sumEl.innerHTML = `
-        <div class="flex justify-between items-center">
-          <span class="text-sm font-bold text-white">${tourney.name}</span>
-          <span class="px-1.5 py-0.2 rounded text-[10px] bg-slate-800 text-cyan-300 font-mono">${tourney.type || 'MTT'}</span>
-        </div>
-        <div class="flex justify-between items-center text-[11px] text-slate-300 font-mono">
-          <span>買入: $${(tourney.buyin || 0).toLocaleString()} ➔ 獲得: $${(tourney.cashout || 0).toLocaleString()}</span>
-          <span class="font-bold ${netColor}">淨利: ${net >= 0 ? '+$' : '-$'}${Math.abs(net).toLocaleString()}</span>
-        </div>
-        <div class="text-[10px] text-slate-400">
-          日期: ${tourney.startTime ? tourney.startTime.slice(0, 10) : tourney.date || '--'} | 耗時: ${tourney.totalMinutes || 0} 分鐘 | 成績: ${tourney.rank || '完賽'}
-        </div>
-      `;
+      if (sumEl) {
+        sumEl.innerHTML = `
+          <div class="flex justify-between items-center">
+            <span class="text-sm font-bold text-white">${tourney.name}</span>
+            <span class="px-1.5 py-0.2 rounded text-[10px] bg-slate-800 text-cyan-300 font-mono">${tourney.type || 'MTT'}</span>
+          </div>
+          <div class="flex justify-between items-center text-[11px] text-slate-300 font-mono">
+            <span>買入: $${(tourney.buyin || 0).toLocaleString()} ➔ 獲得: $${(tourney.cashout || 0).toLocaleString()}</span>
+            <span class="font-bold ${netColor}">淨利: ${net >= 0 ? '+$' : '-$'}${Math.abs(net).toLocaleString()}</span>
+          </div>
+          <div class="text-[10px] text-slate-400">
+            日期: ${tourney.startTime ? tourney.startTime.slice(0, 10) : tourney.date || '--'} | 耗時: ${tourney.totalMinutes || 0} 分鐘 | 成績: ${tourney.rank || '完賽'}
+          </div>
+        `;
+      }
 
       const streamEl = document.getElementById('tourney-detail-log-stream');
       const hands = tourney.hands || [];
-      if (hands.length === 0) {
-        streamEl.innerHTML = '<div class="text-slate-600 py-10 text-center italic text-xs">此場為手動快速補登，無逐手詳細歷程。</div>';
-        return;
-      }
-
-      let html = '';
-      [...hands].reverse().forEach(h => {
-        if (!h.type || h.type === 'hand') {
-          let outcomeBadge = h.outcome === 'win' 
-            ? `<span class="text-rose-400 font-bold">📈 收碼 (+${Math.abs(h.chipDiff || 0)})</span>`
-            : (h.outcome === 'loss' ? `<span class="text-cyan-400 font-bold">📉 掉碼 (-${Math.abs(h.chipDiff || 0)})</span>` : '<span class="text-slate-500">⚪ 棄牌</span>');
-
-          html += `<div class="py-1 px-1 flex flex-col gap-0.5">
-            <div class="flex items-center justify-between">
-              <span class="flex items-center gap-1.5">
-                <span class="font-bold text-amber-300 font-mono">${h.hand}</span>
-                <span class="px-1 rounded bg-slate-800 text-[9px] text-amber-400 font-bold">${h.pos}</span>
-                <span class="text-slate-300 text-[11px]">${h.actionType}</span>
-              </span>
-              <span class="text-slate-500 text-[10px]">${h.time}</span>
-            </div>
-            <div class="flex justify-between items-center text-[10px] text-slate-400 pl-1">
-              <span>碼量: ${h.resultingStack ? h.resultingStack.toLocaleString() : '--'}</span>
-              <span>${outcomeBadge}</span>
-            </div>
-            ${h.notes ? `<div class="text-[10px] text-purple-300/80 italic pl-1">↳ ${h.notes}</div>` : ''}
-          </div>`;
-        } else {
-          html += `<div class="py-1 px-1 text-slate-300 text-[11px]">${h.notes || h.text || ''} <span class="text-slate-500 font-mono text-[10px]">(${h.time})</span></div>`;
+      if (streamEl) {
+        if (hands.length === 0) {
+          streamEl.innerHTML = '<div class="text-slate-600 py-10 text-center italic text-xs">此場為手動快速補登，無逐手詳細歷程。</div>';
+          return;
         }
-      });
-      streamEl.innerHTML = html;
+
+        let html = '';
+        [...hands].reverse().forEach(h => {
+          if (!h.type || h.type === 'hand') {
+            let outcomeBadge = h.outcome === 'win' 
+              ? `<span class="text-rose-400 font-bold">📈 收碼 (+${Math.abs(h.chipDiff || 0)})</span>`
+              : (h.outcome === 'loss' ? `<span class="text-cyan-400 font-bold">📉 掉碼 (-${Math.abs(h.chipDiff || 0)})</span>` : '<span class="text-slate-500">⚪ 棄牌</span>');
+
+            html += `<div class="py-1 px-1 flex flex-col gap-0.5">
+              <div class="flex items-center justify-between">
+                <span class="flex items-center gap-1.5">
+                  <span class="font-bold text-amber-300 font-mono text-sm">${h.hand}</span>
+                  <span class="px-1 rounded bg-slate-800 text-[9px] text-amber-400 font-bold">${h.pos}</span>
+                  <span class="text-slate-300 text-[11px]">${h.actionType}</span>
+                </span>
+                <span class="text-slate-500 text-[10px]">${h.time}</span>
+              </div>
+              <div class="flex justify-between items-center text-[10px] text-slate-400 pl-1">
+                <span>碼量: ${h.resultingStack ? h.resultingStack.toLocaleString() : '--'}</span>
+                <span>${outcomeBadge}</span>
+              </div>
+              ${h.notes ? `<div class="text-[10px] text-purple-300/80 italic pl-1">↳ ${h.notes}</div>` : ''}
+            </div>`;
+          } else {
+            html += `<div class="py-1 px-1 text-slate-300 text-[11px]">${h.notes || h.text || ''} <span class="text-slate-500 font-mono text-[10px]">(${h.time})</span></div>`;
+          }
+        });
+        streamEl.innerHTML = html;
+      }
     }
 
     function closeTourneyDetailModal() {
@@ -1974,8 +2043,10 @@
     function openQuickManualEntryModal() {
       document.getElementById('modal-quick-entry').classList.remove('hidden');
       initDefaultDateTime();
-      document.getElementById('qentry-profit').value = '';
-      document.getElementById('qentry-buyin').value = '';
+      const pEl = document.getElementById('qentry-profit');
+      if (pEl) pEl.value = '';
+      const bEl = document.getElementById('qentry-buyin');
+      if (bEl) bEl.value = '';
     }
 
     function closeQuickManualEntryModal() {
@@ -1983,13 +2054,13 @@
     }
 
     function confirmQuickManualEntry() {
-      const dateVal = document.getElementById('qentry-date').value;
-      const profitVal = parseFloat(document.getElementById('qentry-profit').value);
-      const buyinVal = parseFloat(document.getElementById('qentry-buyin').value) || 0;
-      const buyinCount = parseInt(document.getElementById('qentry-buyin-count').value) || 1;
-      const durationHours = parseFloat(document.getElementById('qentry-duration-hours').value) || 0;
-      const typeVal = document.getElementById('qentry-type').value;
-      const nameVal = document.getElementById('qentry-name').value.trim() || '快速補登賽事';
+      const dateVal = document.getElementById('qentry-date')?.value;
+      const profitVal = parseFloat(document.getElementById('qentry-profit')?.value);
+      const buyinVal = parseFloat(document.getElementById('qentry-buyin')?.value) || 0;
+      const buyinCount = parseInt(document.getElementById('qentry-buyin-count')?.value) || 1;
+      const durationHours = parseFloat(document.getElementById('qentry-duration-hours')?.value) || 0;
+      const typeVal = document.getElementById('qentry-type')?.value || '錦標賽';
+      const nameVal = document.getElementById('qentry-name')?.value.trim() || '快速補登賽事';
 
       if (!dateVal || isNaN(profitVal)) {
         showToast('請完整填寫日期與損益金額！', 'warn');
@@ -2060,11 +2131,12 @@
 
     function renderAnalyticsHeatmap() {
       const { map, totalHands } = calculateGlobalHandAnalytics();
-      document.getElementById('analytics-total-hands-badge').textContent = `分析樣本: ${totalHands} 手`;
+      const badge = document.getElementById('analytics-total-hands-badge');
+      if (badge) badge.textContent = `分析樣本: ${totalHands} 手`;
 
       MATRIX_LABELS.forEach(label => {
         const el = document.getElementById(`analytics-matrix-cell-${label}`);
-        const badge = document.getElementById(`analytics-matrix-badge-${label}`);
+        const cBadge = document.getElementById(`analytics-matrix-badge-${label}`);
         const bbSpan = document.getElementById(`analytics-bb-${label}`);
         if (!el) return;
 
@@ -2073,11 +2145,13 @@
           el.style.backgroundColor = '#020617';
           el.style.borderColor = '#1e293b';
           el.style.color = label.length === 2 ? '#94a3b8' : '#64748b';
-          badge.classList.add('hidden');
+          if (cBadge) cBadge.classList.add('hidden');
           if (bbSpan) bbSpan.textContent = '';
         } else {
-          badge.textContent = data.total;
-          badge.classList.remove('hidden');
+          if (cBadge) {
+            cBadge.textContent = data.total;
+            cBadge.classList.remove('hidden');
+          }
 
           const net = parseFloat(data.netBB.toFixed(1));
           if (bbSpan) bbSpan.textContent = (net >= 0 ? '+' : '') + net;
@@ -2086,17 +2160,17 @@
             el.style.backgroundColor = net >= 10 ? '#be123c' : (net >= 3 ? '#9f1239' : '#881337');
             el.style.borderColor = '#f43f5e';
             el.style.color = '#ffffff';
-            badge.style.color = '#fecdd3';
+            if (cBadge) cBadge.style.color = '#fecdd3';
           } else if (net < 0) {
             el.style.backgroundColor = net <= -10 ? '#1d4ed8' : (net <= -3 ? '#1e40af' : '#1e3a8a');
             el.style.borderColor = '#38bdf8';
             el.style.color = '#ffffff';
-            badge.style.color = '#bae6fd';
+            if (cBadge) cBadge.style.color = '#bae6fd';
           } else {
             el.style.backgroundColor = '#334155';
             el.style.borderColor = '#64748b';
             el.style.color = '#e2e8f0';
-            badge.style.color = '#cbd5e1';
+            if (cBadge) cBadge.style.color = '#cbd5e1';
           }
         }
       });
@@ -2115,54 +2189,65 @@
       const data = map[handLabel];
       if (!data) return;
 
-      document.getElementById('selected-hand-title').textContent = handLabel;
+      const tTitle = document.getElementById('selected-hand-title');
+      if (tTitle) tTitle.textContent = handLabel;
+
       const vpipPct = data.total > 0 ? Math.round((data.vpipCount / data.total) * 100) : 0;
       const netBB = parseFloat(data.netBB.toFixed(1));
       const bb100 = data.total > 0 ? ((data.netBB / data.total) * 100).toFixed(1) : 0;
 
-      document.getElementById('metric-hand-count').textContent = `${data.total} 次`;
-      document.getElementById('metric-hand-vpip').textContent = `${vpipPct}%`;
+      const mCount = document.getElementById('metric-hand-count');
+      if (mCount) mCount.textContent = `${data.total} 次`;
+      const mVpip = document.getElementById('metric-hand-vpip');
+      if (mVpip) mVpip.textContent = `${vpipPct}%`;
       const bb100El = document.getElementById('metric-hand-bb100');
-      bb100El.textContent = `${netBB >= 0 ? '+' : ''}${netBB} BB`;
-      bb100El.className = `text-sm font-bold font-mono ${netBB >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
-      document.getElementById('selected-hand-kpi').textContent = `${bb100 >= 0 ? '+' : ''}${bb100} BB/100`;
+      if (bb100El) {
+        bb100El.textContent = `${netBB >= 0 ? '+' : ''}${netBB} BB`;
+        bb100El.className = `text-sm font-bold font-mono ${netBB >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
+      }
+      const kpiEl = document.getElementById('selected-hand-kpi');
+      if (kpiEl) kpiEl.textContent = `${bb100 >= 0 ? '+' : ''}${bb100} BB/100`;
 
       const gtoRFI = GTO_BENCHMARK_RFI[handLabel] || 0;
       const devEl = document.getElementById('gto-deviation-text');
-      if (data.total < 3) {
-        devEl.textContent = `樣本偏少 (${data.total} 次)。GTO 理論建議進場頻率約 ${gtoRFI}%，建議累計更多對局再校準。`;
-      } else if (vpipPct > gtoRFI + 25) {
-        devEl.innerHTML = `<span class="text-rose-400 font-bold">⚠️ 進場偏鬆 (過度遊戲)：</span>實際入池率 ${vpipPct}% 大幅超越 GTO 基準 (${gtoRFI}%)，容易陷入邊緣牌被主導損碼。`;
-      } else if (vpipPct < gtoRFI - 25) {
-        devEl.innerHTML = `<span class="text-cyan-400 font-bold">💡 進場偏緊 (放過價值)：</span>實際入池率 ${vpipPct}% 低於理論基準 (${gtoRFI}%)，可多在後位利用位置優勢施壓。`;
-      } else {
-        devEl.innerHTML = `<span class="text-emerald-400 font-bold">✅ 決策高度契合 GTO：</span>實際入池率 ${vpipPct}% 與理論頻率 (${gtoRFI}%) 吻合。`;
+      if (devEl) {
+        if (data.total < 3) {
+          devEl.textContent = `樣本偏少 (${data.total} 次)。GTO 理論建議進場頻率約 ${gtoRFI}%，建議累計更多對局再校準。`;
+        } else if (vpipPct > gtoRFI + 25) {
+          devEl.innerHTML = `<span class="text-rose-400 font-bold">⚠️ 進場偏鬆 (過度遊戲)：</span>實際入池率 ${vpipPct}% 大幅超越 GTO 基準 (${gtoRFI}%)，容易陷入邊緣牌被主導損碼。`;
+        } else if (vpipPct < gtoRFI - 25) {
+          devEl.innerHTML = `<span class="text-cyan-400 font-bold">💡 進場偏緊 (放過價值)：</span>實際入池率 ${vpipPct}% 低於理論基準 (${gtoRFI}%)，可多在後位利用位置優勢施壓。`;
+        } else {
+          devEl.innerHTML = `<span class="text-emerald-400 font-bold">✅ 決策高度契合 GTO：</span>實際入池率 ${vpipPct}% 與理論頻率 (${gtoRFI}%) 吻合。`;
+        }
       }
 
       const listContainer = document.getElementById('selected-hand-records-list');
-      if (data.records.length === 0) {
-        listContainer.innerHTML = '<div class="text-slate-600 py-6 text-center italic">生涯中尚未記錄過此手牌。</div>';
-        return;
-      }
+      if (listContainer) {
+        if (data.records.length === 0) {
+          listContainer.innerHTML = '<div class="text-slate-600 py-6 text-center italic">生涯中尚未記錄過此手牌。</div>';
+          return;
+        }
 
-      let html = '';
-      [...data.records].reverse().forEach(r => {
-        const net = r.bbDiff !== undefined ? r.bbDiff : (r.currentBB > 0 ? (r.chipDiff / r.currentBB).toFixed(1) : 0);
-        html += `<div class="py-1.5 px-1 hover:bg-slate-800/60 rounded flex flex-col gap-0.5">
-          <div class="flex items-center justify-between">
-            <span class="flex items-center gap-1.5">
-              <span class="px-1.5 py-0.2 rounded bg-amber-950 text-amber-300 font-bold">${r.pos || '未知'}</span>
-              <span class="text-slate-300">${r.actionType || '未入池'}</span>
-            </span>
-            <span class="font-bold ${net >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${net >= 0 ? '+' : ''}${net} BB</span>
-          </div>
-          <div class="text-[10px] text-slate-500 flex justify-between pl-1">
-            <span>深度: ${r.bbStack || '--'} BB</span>
-            <span>${r.tourneyName || '賽事'} | ${r.time || ''}</span>
-          </div>
-        </div>`;
-      });
-      listContainer.innerHTML = html;
+        let html = '';
+        [...data.records].reverse().forEach(r => {
+          const net = r.bbDiff !== undefined ? r.bbDiff : (r.currentBB > 0 ? (r.chipDiff / r.currentBB).toFixed(1) : 0);
+          html += `<div class="py-1.5 px-1 hover:bg-slate-800/60 rounded flex flex-col gap-0.5">
+            <div class="flex items-center justify-between">
+              <span class="flex items-center gap-1.5">
+                <span class="px-1.5 py-0.2 rounded bg-amber-950 text-amber-300 font-bold">${r.pos || '未知'}</span>
+                <span class="text-slate-300">${r.actionType || '未入池'}</span>
+              </span>
+              <span class="font-bold ${net >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${net >= 0 ? '+' : ''}${net} BB</span>
+            </div>
+            <div class="text-[10px] text-slate-500 flex justify-between pl-1">
+              <span>深度: ${r.bbStack || '--'} BB</span>
+              <span>${r.tourneyName || '賽事'} | ${r.time || ''}</span>
+            </div>
+          </div>`;
+        });
+        listContainer.innerHTML = html;
+      }
     }
 
     // --- 雙軸折線圖 ---
@@ -2237,8 +2322,10 @@
       const p = window._activeChartPoints[index];
       if (!tooltip || !p) return;
 
-      document.getElementById('tooltip-title').innerHTML = `#${p.idx} ${p.title} <span class="text-slate-400 font-normal">(${p.time})</span>`;
-      document.getElementById('tooltip-body').innerHTML = `碼量: ${p.stack.toLocaleString()} | 大盲: ${p.bb.toFixed(1)} BB (盲級: ${p.currentBB})`;
+      const tTitle = document.getElementById('tooltip-title');
+      if (tTitle) tTitle.innerHTML = `#${p.idx} ${p.title} <span class="text-slate-400 font-normal">(${p.time})</span>`;
+      const tBody = document.getElementById('tooltip-body');
+      if (tBody) tBody.innerHTML = `碼量: ${p.stack.toLocaleString()} | 大盲: ${p.bb.toFixed(1)} BB (盲級: ${p.currentBB})`;
 
       const rect = e.target.getBoundingClientRect();
       const parentRect = tooltip.parentElement.getBoundingClientRect();
@@ -2265,37 +2352,71 @@
         if (boxSetup) boxSetup.classList.add('hidden');
         if (boxLive) boxLive.classList.remove('hidden');
 
-        document.getElementById('hud-tourney-name').textContent = activeTourney.name;
-        document.getElementById('hud-type-badge').textContent = activeTourney.type;
-        document.getElementById('hud-buyin').textContent = '$' + activeTourney.buyin.toLocaleString();
+        const elName = document.getElementById('hud-tourney-name');
+        if (elName) elName.textContent = activeTourney.name || '錦標賽';
+
+        const elType = document.getElementById('hud-type-badge');
+        if (elType) elType.textContent = activeTourney.type || 'MTT';
+
+        const elBuyin = document.getElementById('hud-buyin');
+        if (elBuyin) elBuyin.textContent = '$' + (activeTourney.buyin || 0).toLocaleString();
         
         const editTag = document.getElementById('hud-edit-origin-tag');
-        if (editingOriginTourneyId) editTag.classList.remove('hidden');
-        else editTag.classList.add('hidden');
+        if (editTag) {
+          if (editingOriginTourneyId) editTag.classList.remove('hidden');
+          else editTag.classList.add('hidden');
+        }
 
         const rebuyTag = document.getElementById('hud-rebuy-tag');
-        if (activeTourney.rebuyCount > 0) rebuyTag.textContent = `(含 ${activeTourney.rebuyCount} 次加買)`;
-        else rebuyTag.textContent = '';
+        if (rebuyTag) {
+          if (activeTourney.rebuyCount > 0) rebuyTag.textContent = `(含 ${activeTourney.rebuyCount} 次加買)`;
+          else rebuyTag.textContent = '';
+        }
 
         const poolWrap = document.getElementById('hud-pool-wrap');
         const poolText = document.getElementById('hud-prizepool');
-        if (activeTourney.prizePool > 0) { poolWrap.classList.remove('hidden'); poolText.textContent = '$' + activeTourney.prizePool.toLocaleString(); }
-        else poolWrap.classList.add('hidden');
+        if (poolWrap && poolText) {
+          if (activeTourney.prizePool && activeTourney.prizePool > 0) {
+            poolWrap.classList.remove('hidden');
+            poolText.textContent = '$' + activeTourney.prizePool.toLocaleString();
+          } else {
+            poolWrap.classList.add('hidden');
+          }
+        }
 
-        document.getElementById('hud-current-stack').textContent = activeTourney.currentStack.toLocaleString();
+        const elStack = document.getElementById('hud-current-stack');
+        if (elStack) elStack.textContent = (activeTourney.currentStack || 0).toLocaleString();
+
         const bbCount = activeTourney.currentBB > 0 ? (activeTourney.currentStack / activeTourney.currentBB).toFixed(1) : 0;
-        document.getElementById('hud-current-bb').textContent = bbCount + ' BB';
+        const elBB = document.getElementById('hud-current-bb');
+        if (elBB) elBB.textContent = bbCount + ' BB';
 
-        document.getElementById('hud-players-left').textContent = activeTourney.playersLeft || '--';
-        document.getElementById('hud-total-entries').textContent = activeTourney.totalEntries || '--';
-        document.getElementById('hud-avg-stack').textContent = activeTourney.avgStack ? activeTourney.avgStack.toLocaleString() : '--';
-        document.getElementById('hud-avg-bb').textContent = activeTourney.avgBB ? `${activeTourney.avgBB} BB` : '-- BB';
+        const elLeft = document.getElementById('hud-players-left');
+        if (elLeft) elLeft.textContent = activeTourney.playersLeft || '--';
 
-        document.getElementById('staged-bb-value').value = activeTourney.currentBB || 0;
-        document.getElementById('quick-bb-input').value = activeTourney.currentBB || 0;
-        document.getElementById('quick-stack-input').value = activeTourney.currentStack;
-        if (activeTourney.playersLeft) document.getElementById('quick-players-left-input').value = activeTourney.playersLeft;
-        if (activeTourney.totalEntries) document.getElementById('quick-total-entries-input').value = activeTourney.totalEntries;
+        const elEntries = document.getElementById('hud-total-entries');
+        if (elEntries) elEntries.textContent = activeTourney.totalEntries || '--';
+
+        const elAvgStack = document.getElementById('hud-avg-stack');
+        if (elAvgStack) elAvgStack.textContent = activeTourney.avgStack ? activeTourney.avgStack.toLocaleString() : '--';
+
+        const elAvgBB = document.getElementById('hud-avg-bb');
+        if (elAvgBB) elAvgBB.textContent = activeTourney.avgBB ? `${activeTourney.avgBB} BB` : '-- BB';
+
+        const stagedBB = document.getElementById('staged-bb-value');
+        if (stagedBB) stagedBB.value = activeTourney.currentBB || 0;
+
+        const quickBB = document.getElementById('quick-bb-input');
+        if (quickBB) quickBB.value = activeTourney.currentBB || 0;
+
+        const quickStack = document.getElementById('quick-stack-input');
+        if (quickStack) quickStack.value = activeTourney.currentStack;
+
+        const quickLeft = document.getElementById('quick-players-left-input');
+        if (quickLeft && activeTourney.playersLeft) quickLeft.value = activeTourney.playersLeft;
+
+        const quickEntries = document.getElementById('quick-total-entries-input');
+        if (quickEntries && activeTourney.totalEntries) quickEntries.value = activeTourney.totalEntries;
 
         renderLiveLogs();
         renderHeatmap();
@@ -2322,10 +2443,12 @@
       if (activeTourney) mergeStats(activeTourney.handStats);
       else careerTournaments.forEach(t => mergeStats(t.handStats));
 
-      document.getElementById('matrix-stat-badge').textContent = `${totalHandsRecorded} 手`;
+      const badge = document.getElementById('matrix-stat-badge');
+      if (badge) badge.textContent = `${totalHandsRecorded} 手`;
+
       MATRIX_LABELS.forEach(label => {
         const el = document.getElementById(`poker-matrix-cell-${label}`);
-        const badge = document.getElementById(`poker-matrix-badge-${label}`);
+        const cBadge = document.getElementById(`poker-matrix-badge-${label}`);
         if (!el) return;
 
         const data = heatStats[label];
@@ -2333,10 +2456,12 @@
           el.style.backgroundColor = '#020617';
           el.style.borderColor = '#1e293b';
           el.style.color = label.length === 2 ? '#94a3b8' : '#64748b';
-          badge.classList.add('hidden');
+          if (cBadge) cBadge.classList.add('hidden');
         } else {
-          badge.textContent = data.total;
-          badge.classList.remove('hidden');
+          if (cBadge) {
+            cBadge.textContent = data.total;
+            cBadge.classList.remove('hidden');
+          }
           if (data.win > 0) { el.style.backgroundColor = '#be123c'; el.style.borderColor = '#f43f5e'; el.style.color = '#ffffff'; }
           else if (data.loss > 0) { el.style.backgroundColor = '#1d4ed8'; el.style.borderColor = '#38bdf8'; el.style.color = '#ffffff'; }
           else { el.style.backgroundColor = '#334155'; el.style.borderColor = '#64748b'; el.style.color = '#e2e8f0'; }
@@ -2348,11 +2473,11 @@
       const container = document.getElementById('live-log-container');
       const counterBadge = document.getElementById('live-log-count');
       if (!activeTourney || activeTourney.hands.length === 0) {
-        container.innerHTML = '<div class="text-slate-600 py-10 text-center italic text-xs">點選左側矩陣或開口語音開始打點</div>';
-        counterBadge.textContent = '0';
+        if (container) container.innerHTML = '<div class="text-slate-600 py-10 text-center italic text-xs">點選左側矩陣或開口語音開始打點</div>';
+        if (counterBadge) counterBadge.textContent = '0';
         return;
       }
-      counterBadge.textContent = activeTourney.hands.length;
+      if (counterBadge) counterBadge.textContent = activeTourney.hands.length;
       let html = '';
       [...activeTourney.hands].reverse().forEach(h => {
         if (!h.type || h.type === 'hand') {
@@ -2381,145 +2506,7 @@
           </div>`;
         }
       });
-      container.innerHTML = html;
-    }
-
-    // --- 關鍵修正：開始記錄賽事 (加入完整防呆與錯誤攔截) ---
-    function startNewTournamentSession() {
-      try {
-        const nameEl = document.getElementById('init-tourney-name');
-        const typeEl = document.getElementById('init-tourney-type');
-        const buyinEl = document.getElementById('init-buyin');
-        const startTimeEl = document.getElementById('init-start-time');
-        const startStackEl = document.getElementById('init-start-stack');
-        const startBBEl = document.getElementById('init-start-bb');
-        const entriesEl = document.getElementById('init-total-entries');
-        const prizePoolEl = document.getElementById('init-prize-pool');
-
-        const name = (nameEl && nameEl.value.trim()) ? nameEl.value.trim() : '未命名錦標賽';
-        const type = (typeEl && typeEl.value) ? typeEl.value : '錦標賽 (MTT)';
-        const buyin = (buyinEl && !isNaN(parseFloat(buyinEl.value))) ? parseFloat(buyinEl.value) : 10000;
-        const startTime = (startTimeEl && startTimeEl.value) ? startTimeEl.value : new Date().toISOString();
-        const startStack = (startStackEl && !isNaN(parseFloat(startStackEl.value)) && parseFloat(startStackEl.value) > 0) ? parseFloat(startStackEl.value) : 30000;
-        const startBB = (startBBEl && !isNaN(parseFloat(startBBEl.value)) && parseFloat(startBBEl.value) > 0) ? parseFloat(startBBEl.value) : 200;
-        const totalEntries = (entriesEl && !isNaN(parseInt(entriesEl.value))) ? Math.max(0, parseInt(entriesEl.value)) : 0;
-        const prizePool = (prizePoolEl && !isNaN(parseFloat(prizePoolEl.value))) ? parseFloat(prizePoolEl.value) : null;
-
-        activeTourney = {
-          id: 't_' + Date.now(),
-          name: name,
-          type: type,
-          buyin: buyin,
-          rebuyCount: 0,
-          prizePool: prizePool,
-          startTime: startTime,
-          startStack: startStack,
-          startBB: startBB,
-          currentStack: startStack,
-          currentBB: startBB,
-          totalEntries: totalEntries,
-          playersLeft: totalEntries || 0,
-          avgStack: startStack,
-          avgBB: (startStack / startBB).toFixed(1),
-          hands: [],
-          handStats: {},
-          status: 'active'
-        };
-
-        editingOriginTourneyId = null;
-        calculateAndSetAverageStack();
-        waitingHandQueue = [];
-        clearCurrentStagingForm();
-        saveStorageData();
-        renderUI();
-        if (isAutoSyncEnabled) triggerAutoSyncIfEnabled();
-        showToast(`已成功開始「${name}」！`, 'success');
-      } catch (err) {
-        console.error('startNewTournamentSession failed:', err);
-        showToast('啟動賽事失敗: ' + err.message, 'error');
-      }
-    }
-
-    function openFinishModal() {
-      if (!activeTourney) return;
-      document.getElementById('modal-finish').classList.remove('hidden');
-      document.getElementById('finish-cashout').value = activeTourney.cashout !== undefined ? activeTourney.cashout : '';
-      document.getElementById('finish-rank').value = activeTourney.rank || '';
-    }
-
-    function closeFinishModal() {
-      document.getElementById('modal-finish').classList.add('hidden');
-    }
-
-    function confirmFinishTournament() {
-      if (!activeTourney) return;
-      const cashout = parseFloat(document.getElementById('finish-cashout').value) || 0;
-      const rank = document.getElementById('finish-rank').value.trim() || '完賽';
-
-      const endTime = new Date();
-      const startD = new Date(activeTourney.startTime);
-      const totalMinutes = Math.max(1, Math.round((endTime - startD) / 60000));
-
-      activeTourney.endTime = endTime.toISOString();
-      activeTourney.totalMinutes = totalMinutes;
-      activeTourney.cashout = cashout;
-      activeTourney.netProfit = cashout - activeTourney.buyin;
-      activeTourney.roi = activeTourney.buyin > 0 ? ((activeTourney.netProfit / activeTourney.buyin) * 100).toFixed(1) : 0;
-      activeTourney.rank = rank;
-      activeTourney.status = 'completed';
-
-      if (editingOriginTourneyId) {
-        const idx = careerTournaments.findIndex(t => t.id === editingOriginTourneyId);
-        if (idx !== -1) careerTournaments[idx] = JSON.parse(JSON.stringify(activeTourney));
-        else careerTournaments.unshift(JSON.parse(JSON.stringify(activeTourney)));
-      } else {
-        careerTournaments.unshift(JSON.parse(JSON.stringify(activeTourney)));
-      }
-
-      closeFinishModal();
-      resetLiveWorkspaceToInit();
-      switchMainTab('review');
-      if (isAutoSyncEnabled) uploadToCloud();
-      showToast('🏆 賽事已存檔！', 'success');
-    }
-
-    function renderCareerSummary() {
-      const totalGames = careerTournaments.length;
-      document.getElementById('career-tourney-count').textContent = `共 ${totalGames} 筆`;
-      const listContainer = document.getElementById('career-list-container');
-      if (totalGames === 0) {
-        listContainer.innerHTML = '<div class="text-slate-600 py-8 text-center italic">尚未有已結算的賽事。</div>';
-        return;
-      }
-
-      let html = '';
-      careerTournaments.forEach(t => {
-        const pNet = t.netProfit !== undefined ? t.netProfit : ((t.cashout || 0) - (t.buyin || 0));
-        const pClass = pNet >= 0 ? 'text-emerald-400' : 'text-rose-400';
-        const dateStr = t.startTime ? t.startTime.slice(0, 10) : t.date || '--';
-
-        html += `<div class="bg-slate-950 border border-slate-800 p-3 rounded-xl flex flex-wrap justify-between items-center gap-2 hover:border-slate-700 transition">
-          <div>
-            <div class="font-bold text-slate-100 text-sm flex items-center gap-2">
-              <span>${t.name}</span>
-              <span class="px-1.5 py-0.2 rounded text-[10px] bg-slate-800 text-cyan-300 font-mono">${t.type || 'MTT'}</span>
-              <span class="px-1.5 py-0.2 rounded text-[10px] bg-amber-950 text-amber-300 font-bold">${t.rank || '完賽'}</span>
-            </div>
-            <div class="text-[11px] text-slate-400 mt-0.5 font-mono">
-              時間: ${dateStr} | 手數: ${t.hands ? t.hands.length : 0} 手 | 耗時: ${t.totalMinutes || 0} 分鐘
-            </div>
-          </div>
-          <div class="flex items-center gap-2">
-            <div class="text-right font-mono mr-1">
-              <div class="text-xs text-slate-400">買入 $${(t.buyin || 0).toLocaleString()} ➔ $${(t.cashout || 0).toLocaleString()}</div>
-              <div class="font-bold text-xs ${pClass}">淨利: ${pNet >= 0 ? '+$' : '-$'}${Math.abs(pNet).toLocaleString()}</div>
-            </div>
-            <button onclick="openTourneyDetailModal('${t.id}')" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 rounded-lg text-xs transition cursor-pointer">詳情</button>
-            <button onclick="loadTourneyToLiveWorkspaceById('${t.id}')" class="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition cursor-pointer">📥 載回編輯</button>
-          </div>
-        </div>`;
-      });
-      listContainer.innerHTML = html;
+      if (container) container.innerHTML = html;
     }
 
     function startDurationTimer() {
@@ -2530,7 +2517,8 @@
         const hrs = String(Math.floor(diff / 3600)).padStart(2, '0');
         const mins = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
         const secs = String(diff % 60).padStart(2, '0');
-        document.getElementById('hud-duration').textContent = `${hrs}:${mins}:${secs}`;
+        const durEl = document.getElementById('hud-duration');
+        if (durEl) durEl.textContent = `${hrs}:${mins}:${secs}`;
       }, 1000);
     }
 
@@ -2550,15 +2538,22 @@
         const q = localStorage.getItem('poker_system_queue');
         if (q) waitingHandQueue = JSON.parse(q);
         const t = localStorage.getItem('poker_system_table_size');
-        if (t) { currentTableSize = parseInt(t); document.getElementById('table-player-count').value = t; }
+        if (t) {
+          currentTableSize = parseInt(t);
+          const sel = document.getElementById('table-player-count');
+          if (sel) sel.value = t;
+        }
       } catch (e) {}
     }
 
     function openSettingsModal() {
       document.getElementById('modal-settings').classList.remove('hidden');
-      document.getElementById('cfg-firebase-json').value = localStorage.getItem('poker_system_fb_cfg') || JSON.stringify(DEFAULT_FB_CONFIG, null, 2);
-      document.getElementById('cfg-room-code').value = localStorage.getItem('poker_system_fb_room') || 'my_tourney_career';
-      document.getElementById('cfg-auto-sync').checked = localStorage.getItem('poker_system_fb_autosync') !== '0';
+      const cfgEl = document.getElementById('cfg-firebase-json');
+      if (cfgEl) cfgEl.value = localStorage.getItem('poker_system_fb_cfg') || JSON.stringify(DEFAULT_FB_CONFIG, null, 2);
+      const rmEl = document.getElementById('cfg-room-code');
+      if (rmEl) rmEl.value = localStorage.getItem('poker_system_fb_room') || 'my_tourney_career';
+      const syncEl = document.getElementById('cfg-auto-sync');
+      if (syncEl) syncEl.checked = localStorage.getItem('poker_system_fb_autosync') !== '0';
     }
 
     function closeSettingsModal() {
@@ -2566,9 +2561,9 @@
     }
 
     function saveAndInitFirebase() {
-      const rawCfg = document.getElementById('cfg-firebase-json').value.trim();
-      const room = document.getElementById('cfg-room-code').value.trim() || 'my_tourney_career';
-      const autoSync = document.getElementById('cfg-auto-sync').checked;
+      const rawCfg = document.getElementById('cfg-firebase-json')?.value.trim();
+      const room = document.getElementById('cfg-room-code')?.value.trim() || 'my_tourney_career';
+      const autoSync = document.getElementById('cfg-auto-sync')?.checked;
       let parsed;
       try { parsed = JSON.parse(rawCfg); } catch (e) { showToast('JSON 格式錯誤！', 'error'); return; }
 
@@ -2592,14 +2587,21 @@
         if (!firebase.apps.length) firebase.initializeApp(cfg);
         firestoreDB = firebase.firestore();
         isCloudConfigured = true;
-        document.getElementById('cloud-led').className = 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse';
-        document.getElementById('cloud-status-text').textContent = `已連通 (${room})`;
+        const led = document.getElementById('cloud-led');
+        if (led) led.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse';
+        const txt = document.getElementById('cloud-status-text');
+        if (txt) txt.textContent = `已連通 (${room})`;
         firestoreDB.collection('tournament_careers').doc(room).onSnapshot(doc => {
-          if (doc.exists) document.getElementById('cloud-status-text').textContent = `雲端最新 (${doc.data().updatedAt || '已同步'})`;
+          if (doc.exists) {
+            const statusTxt = document.getElementById('cloud-status-text');
+            if (statusTxt) statusTxt.textContent = `雲端最新 (${doc.data().updatedAt || '已同步'})`;
+          }
         });
       } catch (err) {
-        document.getElementById('cloud-led').className = 'w-2 h-2 rounded-full bg-slate-500';
-        document.getElementById('cloud-status-text').textContent = '未連線';
+        const led = document.getElementById('cloud-led');
+        if (led) led.className = 'w-2 h-2 rounded-full bg-slate-500';
+        const txt = document.getElementById('cloud-status-text');
+        if (txt) txt.textContent = '未連線';
       }
     }
 
