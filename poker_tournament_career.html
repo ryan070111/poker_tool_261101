@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>德州撲克錦標賽生涯戰情系統</title>
+  <title>德州撲克錦標賽生涯戰情系統 (雙軸圖表版)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     html, body {
@@ -48,6 +48,21 @@
     }
     .no-scrollbar::-webkit-scrollbar { display: none; }
     .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    @keyframes toastIn {
+      from { transform: translateY(100%); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+    .animate-toast {
+      animation: toastIn 0.25s ease-out forwards;
+    }
+    .chart-point {
+      transition: r 0.15s ease, stroke-width 0.15s ease;
+      cursor: pointer;
+    }
+    .chart-point:hover {
+      r: 6;
+      stroke-width: 2.5;
+    }
   </style>
   <!-- Firebase Compatibility SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
@@ -61,7 +76,7 @@
       <span class="text-xl sm:text-2xl">🏆</span>
       <div>
         <h1 class="text-sm sm:text-base font-bold tracking-wide text-white">錦標賽生涯戰情系統</h1>
-        <p class="text-[10px] sm:text-xs text-slate-400">快速損益補登 / 智能損益判斷 / 覆蓋式雲端備份</p>
+        <p class="text-[10px] sm:text-xs text-slate-400">大盲與碼量雙軸波動圖 / 載回覆蓋編輯 / 快速補登擴充 / 輕量提示</p>
       </div>
     </div>
     
@@ -89,7 +104,7 @@
           <h2 class="text-base sm:text-lg font-bold text-amber-400 flex items-center gap-2">
             <span>🏁</span> 建立新賽事 / 進入錦標賽
           </h2>
-          <p class="text-xs text-slate-400 mt-1">填寫賽前資訊，開始後可隨時記錄手牌、加買 Rebuy、動態更新盲注與錦標賽均碼。</p>
+          <p class="text-xs text-slate-400 mt-1">填寫賽前資訊，啟動後可即時追蹤大盲/碼量雙軸波動圖、排隊暫存手牌與均碼人數。</p>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 text-xs">
@@ -149,12 +164,59 @@
       <!-- SECTION B: ACTIVE TOURNAMENT LIVE DASHBOARD -->
       <div id="box-live-workspace" class="hidden flex flex-col gap-3">
         
+        <!-- 新增: 實戰 HUD 上方即時雙軸折線圖 (大盲變化 BB & 碼量變化 Stack) -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 sm:p-4 shadow-xl flex flex-col gap-2 relative">
+          <div class="flex justify-between items-center border-b border-slate-800/80 pb-2">
+            <div class="flex items-center gap-2">
+              <span class="text-sm">📈</span>
+              <span class="font-bold text-xs sm:text-sm text-white">即時牌局進度波動折線圖</span>
+              <span class="text-[10px] text-slate-400 font-mono hidden sm:inline">(雙軸同步追蹤)</span>
+            </div>
+            
+            <div class="flex items-center gap-3 text-[11px] font-mono">
+              <span class="flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
+                <span class="text-cyan-300 font-bold">大盲 (BB)</span>
+              </span>
+              <span class="flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+                <span class="text-emerald-300 font-bold">籌碼量 (Stack)</span>
+              </span>
+            </div>
+          </div>
+
+          <!-- SVG 雙軸折線圖容器 -->
+          <div class="relative w-full h-32 sm:h-44 bg-slate-950 rounded-lg border border-slate-800/80 overflow-hidden flex items-center justify-center">
+            <svg id="live-dual-chart" class="w-full h-full p-2" viewBox="0 0 800 200" preserveAspectRatio="none">
+              <!-- JS 會動態生成網格線、曲線與節點 -->
+            </svg>
+            
+            <!-- 懸停/點擊節點彈出之浮動卡片 Tooltip -->
+            <div id="chart-tooltip" class="hidden absolute z-30 bg-slate-900/95 border border-cyan-500/80 p-2 rounded-lg shadow-2xl text-[10px] font-mono pointer-events-none transition-opacity duration-150 backdrop-blur-md">
+              <div id="tooltip-title" class="font-bold text-cyan-300">手牌詳情</div>
+              <div id="tooltip-body" class="text-slate-300 mt-0.5">--</div>
+            </div>
+
+            <!-- 無資料時的空提示 -->
+            <div id="chart-empty-placeholder" class="text-slate-600 text-xs italic">尚無足夠打點資料，開始記錄手牌或更新盲碼後自動生成即時波動曲線</div>
+          </div>
+          
+          <div class="flex justify-between items-center text-[10px] text-slate-500 px-1">
+            <span>提示：滑鼠懸停或點選圖表節點，可即時查看該手牌/盲碼事件的詳細數值</span>
+            <span id="chart-status-summary">點數: 0 個</span>
+          </div>
+        </div>
+
         <!-- Live HUD Control Bar -->
         <div class="bg-slate-900 border border-slate-800 rounded-xl p-3 sm:p-4 shadow-xl flex flex-wrap justify-between items-center gap-3">
           <div class="flex flex-wrap items-center gap-x-3.5 gap-y-1.5">
             <span class="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold text-xs" id="hud-type-badge">MTT</span>
             <span class="text-sm sm:text-base font-bold text-white tracking-wide" id="hud-tourney-name">賽事名稱</span>
             
+            <span id="hud-edit-origin-tag" class="hidden px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-500/60 font-bold text-xs">
+              🔄 正在編輯歷史賽事
+            </span>
+
             <span class="text-slate-400 font-mono text-xs">
               總買入: <span class="text-emerald-400 font-bold" id="hud-buyin">$0</span>
               <span id="hud-rebuy-tag" class="text-amber-400 text-[10px] font-sans ml-1"></span>
@@ -236,7 +298,6 @@
               </div>
             </div>
 
-            <!-- 13x13 Grid -->
             <div id="poker-matrix" class="grid-matrix bg-slate-950 p-1 rounded-lg border border-slate-800"></div>
 
             <div class="flex justify-between items-center text-[10px] text-slate-500 pt-0.5">
@@ -320,7 +381,7 @@
                 </div>
               </div>
 
-              <!-- 大盲、此手後碼量與自動損益切換 -->
+              <!-- 大盲、此手後碼量與損益 -->
               <div class="grid grid-cols-12 gap-1.5 text-xs">
                 <div class="col-span-4">
                   <label class="block text-slate-400 font-semibold mb-0.5 text-[10px]">大盲 (BB)</label>
@@ -431,7 +492,6 @@
                 <span>📜</span> 賽事歷程流水帳 (<span id="live-log-count">0</span>)
               </span>
               
-              <!-- Height Dropdown Menu -->
               <div class="flex items-center gap-1">
                 <span class="text-[10px] text-slate-500">高度:</span>
                 <select id="log-height-select" onchange="changeLogHeight(this.value)" class="bg-slate-950 border border-slate-700 rounded px-1.5 py-0.5 text-[10px] text-cyan-400 font-mono focus:outline-none">
@@ -468,7 +528,6 @@
         </div>
         
         <div class="flex items-center gap-2">
-          <!-- 新增: 手動快速補登賽事按鈕 -->
           <button onclick="openQuickManualEntryModal()" class="px-3 py-1.5 bg-amber-600 hover:bg-amber-500 text-slate-950 rounded-lg text-xs font-bold transition flex items-center gap-1 shadow">
             <span>➕</span> 手動快速記帳
           </button>
@@ -515,9 +574,9 @@
 
   </main>
 
-  <!-- MODAL: 手動快速記帳 (僅需日期、時間、損益) -->
+  <!-- MODAL: 手動快速記帳 -->
   <div id="modal-quick-entry" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
-    <div class="bg-slate-900 border border-amber-500/70 rounded-xl max-w-sm w-full p-4 sm:p-5 shadow-2xl flex flex-col gap-3 text-xs">
+    <div class="bg-slate-900 border border-amber-500/70 rounded-xl max-w-md w-full p-4 sm:p-5 shadow-2xl flex flex-col gap-3 text-xs max-h-[92vh] overflow-y-auto">
       <div class="flex justify-between items-center border-b border-slate-800 pb-2">
         <h3 class="font-bold text-sm text-amber-300 flex items-center gap-1.5">
           <span>➕</span> 手動快速補登賽事
@@ -526,7 +585,7 @@
       </div>
 
       <p class="text-[11px] text-slate-300 leading-relaxed">
-        無須逐手紀錄，直接輸入日期與淨損益即可計入生涯總覽與戰績統計。
+        無須逐手紀錄，輸入買入、時長與淨損益即可直接計入生涯總覽與大數據統計。
       </p>
 
       <div class="flex flex-col gap-2.5">
@@ -536,18 +595,51 @@
         </div>
 
         <div>
-          <label class="text-[11px] text-slate-300 font-semibold mb-0.5 block">淨損益金額 (必填，賺正賠負) *</label>
+          <label class="text-[11px] text-slate-300 font-semibold mb-0.5 block">賽事淨損益 (必填，獲利正數/虧損負數) *</label>
           <input type="number" id="qentry-profit" step="100" placeholder="如: 17400 或 -2400" class="w-full bg-slate-950 border border-slate-700 rounded p-2 font-mono text-emerald-400 font-bold focus:outline-none focus:border-amber-500">
         </div>
 
-        <div>
-          <label class="text-[11px] text-slate-400 font-semibold mb-0.5 block">賽事開始時間 (選填)</label>
-          <input type="time" id="qentry-time" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 text-slate-300 font-mono">
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-[11px] text-slate-300 font-semibold mb-0.5 block">買入金額 (Buy-in)</label>
+            <input type="number" id="qentry-buyin" step="100" min="0" placeholder="如 2400" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 font-mono text-slate-200">
+          </div>
+          <div>
+            <label class="text-[11px] text-slate-300 font-semibold mb-0.5 block">買入次數 (次 / 組)</label>
+            <input type="number" id="qentry-buyin-count" min="1" value="1" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 font-mono text-amber-300 font-bold">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-[11px] text-slate-400 font-semibold mb-0.5 block">開始時間 (選填)</label>
+            <input type="time" id="qentry-time-start" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 text-slate-300 font-mono">
+          </div>
+          <div>
+            <label class="text-[11px] text-slate-400 font-semibold mb-0.5 block">結束時間 (選填)</label>
+            <input type="time" id="qentry-time-end" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 text-slate-300 font-mono">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <div>
+            <label class="text-[11px] text-slate-400 font-semibold mb-0.5 block">總時長 (小時，選填)</label>
+            <input type="number" id="qentry-duration-hours" step="0.5" min="0" placeholder="如: 3 或 2.5" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 font-mono text-cyan-300">
+          </div>
+          <div>
+            <label class="text-[11px] text-slate-400 font-semibold mb-0.5 block">比賽種類</label>
+            <select id="qentry-type" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 text-slate-300">
+              <option value="錦標賽">錦標賽</option>
+              <option value="限時錦標">限時錦標</option>
+              <option value="現金桌">現金桌</option>
+              <option value="單桌賽">單桌賽</option>
+            </select>
+          </div>
         </div>
 
         <div>
-          <label class="text-[11px] text-slate-400 font-semibold mb-0.5 block">賽事名稱 / 備註 (選填)</label>
-          <input type="text" id="qentry-name" placeholder="如: 週末快速錦標 / 現場現金局" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 text-slate-200">
+          <label class="text-[11px] text-slate-400 font-semibold mb-0.5 block">賽事名稱 / 場地 / 備註 (選填)</label>
+          <input type="text" id="qentry-name" placeholder="如: 老鷹牌室 / 週末快速錦標" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 text-slate-200">
         </div>
       </div>
 
@@ -647,18 +739,14 @@
         <button onclick="closeTourneyDetailModal()" class="text-slate-400 hover:text-white font-bold p-1">✕</button>
       </div>
 
-      <div id="tourney-detail-summary" class="bg-slate-950 p-3 rounded-lg border border-slate-800 flex flex-col gap-1.5">
-        <!-- JS 動態填入摘要 -->
-      </div>
+      <div id="tourney-detail-summary" class="bg-slate-950 p-3 rounded-lg border border-slate-800 flex flex-col gap-1.5"></div>
 
       <div class="flex justify-between items-center text-xs font-semibold text-slate-300 pt-1">
-        <span>此場所有手牌與打點清單</span>
+        <span>此場手牌與打點清單</span>
         <span id="detail-log-count" class="text-slate-500 text-[10px]">0 筆</span>
       </div>
 
-      <div id="tourney-detail-log-stream" class="h-64 overflow-y-auto space-y-1 text-xs font-mono pr-1 divide-y divide-slate-800/80 bg-slate-950 p-2 rounded-lg border border-slate-800">
-        <!-- JS 動態填入流水帳 -->
-      </div>
+      <div id="tourney-detail-log-stream" class="h-64 overflow-y-auto space-y-1 text-xs font-mono pr-1 divide-y divide-slate-800/80 bg-slate-950 p-2 rounded-lg border border-slate-800"></div>
 
       <div class="flex justify-between items-center pt-2 border-t border-slate-800">
         <button onclick="deleteTourneyFromDetail()" class="px-3 py-1.5 bg-rose-950 hover:bg-rose-900 border border-rose-800 text-rose-300 rounded font-medium transition text-xs">
@@ -680,7 +768,6 @@
       </div>
 
       <div class="flex flex-col gap-2">
-        <!-- 手牌編輯欄位 -->
         <div id="edit-row-hand-group" class="hidden flex-col gap-2">
           <div>
             <label class="text-[11px] text-slate-400 font-semibold mb-0.5 block">手牌代碼 (如 AKs, 88)</label>
@@ -703,7 +790,6 @@
           </div>
         </div>
 
-        <!-- 盲碼編輯欄位 (步進 100) -->
         <div id="edit-row-state-group" class="hidden grid grid-cols-2 gap-2">
           <div>
             <label class="text-[11px] text-slate-400 font-semibold mb-0.5 block">大盲 (BB)</label>
@@ -715,7 +801,6 @@
           </div>
         </div>
 
-        <!-- 錦標賽人數編輯欄位 (負號防呆 min="1") -->
         <div id="edit-row-field-group" class="hidden grid grid-cols-2 gap-2">
           <div>
             <label class="text-[11px] text-slate-400 font-semibold mb-0.5 block">剩餘人數</label>
@@ -727,13 +812,11 @@
           </div>
         </div>
 
-        <!-- 自由備忘專屬編輯欄位 -->
         <div id="edit-row-text-group" class="hidden">
           <label class="text-[11px] text-slate-400 font-semibold mb-0.5 block">自由備忘文字</label>
           <input type="text" id="edit-text-content" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 text-xs text-cyan-300">
         </div>
 
-        <!-- Rebuy 編輯欄位 -->
         <div id="edit-row-rebuy-group" class="hidden grid grid-cols-2 gap-2">
           <div>
             <label class="text-[11px] text-slate-400 font-semibold mb-0.5 block">Rebuy 金額</label>
@@ -750,7 +833,6 @@
           <input type="number" id="edit-hand-stack" step="100" min="0" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 font-mono text-cyan-300 font-bold">
         </div>
 
-        <!-- 備忘備註 -->
         <div>
           <label id="edit-notes-label" class="text-[11px] text-slate-400 font-semibold mb-0.5 block">復盤備忘/說明</label>
           <textarea id="edit-hand-notes" rows="2" class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 text-xs text-slate-200"></textarea>
@@ -774,13 +856,13 @@
     <div class="bg-slate-900 border border-slate-700 rounded-xl max-w-md w-full p-4 sm:p-5 shadow-2xl flex flex-col gap-3.5 text-xs">
       <div class="flex justify-between items-center border-b border-slate-800 pb-2">
         <h3 class="font-bold text-sm sm:text-base text-rose-400 flex items-center gap-1.5">
-          <span>🏁</span> 賽事結算與生涯存檔
+          <span>🏁</span> <span id="finish-modal-title">賽事結算與生涯存檔</span>
         </h3>
         <button onclick="closeFinishModal()" class="text-slate-400 hover:text-white font-bold text-base p-1">✕</button>
       </div>
 
-      <div class="bg-slate-950 p-2.5 rounded-lg border border-slate-800 text-slate-300 leading-relaxed text-[11px]">
-        恭喜完成此場賽事！輸入最終收穫獎金與名次，系統自動結算淨利與 ROI。
+      <div class="bg-slate-950 p-2.5 rounded-lg border border-slate-800 text-slate-300 leading-relaxed text-[11px]" id="finish-modal-desc">
+        輸入最終收穫獎金與名次，系統自動結算淨利與 ROI。
       </div>
 
       <div class="flex flex-col gap-2">
@@ -795,9 +877,11 @@
         </div>
       </div>
 
-      <div class="flex justify-end gap-2 pt-2 border-t border-slate-800">
+      <div class="flex justify-between items-center gap-2 pt-2 border-t border-slate-800" id="finish-modal-actions">
         <button onclick="closeFinishModal()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs">取消</button>
-        <button onclick="confirmFinishTournament()" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded text-xs transition">確認結算並存檔</button>
+        <button onclick="confirmFinishTournament()" id="btn-confirm-finish" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded text-xs transition">
+          確認結算並存檔
+        </button>
       </div>
     </div>
   </div>
@@ -842,7 +926,11 @@
     </div>
   </div>
 
+  <!-- TOAST CONTAINER (網頁右下角浮動通知) -->
+  <div id="toast-container" class="fixed bottom-4 right-4 z-50 flex flex-col gap-2 pointer-events-none max-w-sm w-full"></div>
+
   <script>
+    // --- 1. CORE MATRIX & POSITIONS ---
     const RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
     const FULL_10MAX_POSITIONS = ['UTG', 'UTG+1', 'UTG+2', 'UTG+3', 'LJ', 'HJ', 'CO', 'BTN', 'SB', 'BB'];
     
@@ -879,6 +967,7 @@
 
     let currentCareerTab = 'live';
     let activeTourney = null;
+    let editingOriginTourneyId = null;
     let careerTournaments = [];
     let currentTableSize = 9;
 
@@ -894,6 +983,37 @@
     let isAutoSyncEnabled = true;
     let durationTimer = null;
 
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      if (!container) return;
+
+      const toast = document.createElement('div');
+      let borderClass = 'border-blue-500/80 bg-blue-950/95 text-blue-200';
+      let icon = 'ℹ️';
+
+      if (type === 'success') {
+        borderClass = 'border-emerald-500/80 bg-emerald-950/95 text-emerald-200';
+        icon = '✅';
+      } else if (type === 'warn') {
+        borderClass = 'border-amber-500/80 bg-amber-950/95 text-amber-200';
+        icon = '⚠️';
+      } else if (type === 'error') {
+        borderClass = 'border-rose-500/80 bg-rose-950/95 text-rose-200';
+        icon = '❌';
+      }
+
+      toast.className = `pointer-events-auto p-3 rounded-xl border shadow-2xl flex items-center gap-2 text-xs font-medium animate-toast backdrop-blur-md ${borderClass}`;
+      toast.innerHTML = `<span>${icon}</span><span class="flex-1 leading-snug">${message}</span>`;
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(10px)';
+        setTimeout(() => toast.remove(), 320);
+      }, 3000);
+    }
+
     function sanitizeNonNegative(inputEl, minVal = 0) {
       if (!inputEl) return;
       let val = parseInt(inputEl.value);
@@ -902,6 +1022,7 @@
       }
     }
 
+    // --- 4. INITIALIZATION ---
     window.addEventListener('DOMContentLoaded', () => {
       initMatrixDOM();
       loadStorageData();
@@ -955,7 +1076,7 @@
       if (qDate) qDate.value = dateOnly;
     }
 
-    // --- 動態桌況位置切換 ---
+    // --- 5. DYNAMIC POSITIONS & TABLE SIZES ---
     function onTableSizeChanged(size) {
       currentTableSize = size;
       localStorage.setItem('poker_career_table_size', size);
@@ -1032,7 +1153,7 @@
       }
     }
 
-    // --- 大盲與損益自動判定 (碼量變動自動切換收碼/掉碼) ---
+    // --- 6. 大盲與損益自動判定 ---
     function onStagedBBChanged(val) {
       const num = parseFloat(val);
       if (activeTourney && !isNaN(num) && num >= 0) {
@@ -1046,7 +1167,6 @@
       calculateAutoBlindDeduction();
     }
 
-    // 當輸入碼量時自動判定收碼/掉碼
     function onResultingStackInputChanged(val) {
       if (!activeTourney) return;
       const num = parseFloat(val);
@@ -1063,9 +1183,7 @@
         outcomeSelect.value = 'loss';
         vpipChk.checked = true;
       } else {
-        if (!vpipChk.checked) {
-          outcomeSelect.value = 'fold';
-        }
+        if (!vpipChk.checked) outcomeSelect.value = 'fold';
       }
     }
 
@@ -1088,10 +1206,10 @@
       document.getElementById('staged-resulting-stack').value = curStack;
     }
 
-    // --- STAGING & WAITING QUEUE ---
+    // --- 7. STAGING & WAITING QUEUE ---
     function onMatrixCellClicked(label) {
       if (!activeTourney) {
-        alert('請先在上方建立並開始一場賽事！');
+        showToast('請先建立或載入一場錦標賽！', 'warn');
         return;
       }
       const captureTime = new Date().toLocaleTimeString();
@@ -1190,7 +1308,7 @@
         onMatrixCellClicked(found);
         input.value = '';
       } else {
-        alert('請輸入有效手牌代碼 (如 AKs, 88, KJo)！');
+        showToast('請輸入有效手牌代碼 (如 AKs, 88)！', 'warn');
       }
     }
 
@@ -1230,11 +1348,11 @@
 
     function submitStagedHand() {
       if (!activeTourney) {
-        alert('請先開始一場錦標賽！');
+        showToast('請先開始一場錦標賽！', 'warn');
         return;
       }
       if (!currentStagedHand) {
-        alert('當前編輯區沒有手牌，請先從矩陣點選！');
+        showToast('當前編輯區沒有手牌，請先從矩陣點選！', 'warn');
         return;
       }
 
@@ -1285,7 +1403,7 @@
       if (isAutoSyncEnabled) triggerAutoSyncIfEnabled();
     }
 
-    // --- REBUY / ADDON & 賽事資訊修改 ---
+    // --- 8. REBUY / ADDON & 賽事資訊修改 ---
     function openRebuyModal() {
       if (!activeTourney) return;
       document.getElementById('modal-rebuy').classList.remove('hidden');
@@ -1307,7 +1425,7 @@
       const note = document.getElementById('rebuy-note-input').value.trim() || 'Rebuy / Add-on 買入增補';
 
       if (isNaN(amount) || amount <= 0) {
-        alert('請輸入有效的增補買入金額！');
+        showToast('請輸入有效的增補買入金額！', 'warn');
         return;
       }
 
@@ -1336,7 +1454,7 @@
       renderUI();
       closeRebuyModal();
       if (isAutoSyncEnabled) triggerAutoSyncIfEnabled();
-      alert(`已成功記錄 Rebuy/Add-on！累計總買入: $${activeTourney.buyin.toLocaleString()} (共 ${activeTourney.rebuyCount} 次)`);
+      showToast(`已成功記錄 Rebuy！累計總買入: $${activeTourney.buyin.toLocaleString()}`, 'success');
     }
 
     function openEditTourneyInfoModal() {
@@ -1368,20 +1486,22 @@
       renderUI();
       closeEditTourneyInfoModal();
       if (isAutoSyncEnabled) triggerAutoSyncIfEnabled();
-      alert('錦標賽資訊已成功更新！');
+      showToast('錦標賽資訊已成功更新！', 'success');
     }
 
     function confirmAbandonTournament() {
       if (!activeTourney) return;
-      if (!confirm('⚠️ 警告：這將會放棄並清除目前正在進行的這場賽事所有手牌紀錄，回到開始設定選單。\n\n確定要放棄嗎？')) {
+      if (!confirm('⚠️ 警告：這將會放棄目前工作區的賽事進度，回到開始選單。\n\n確定要放棄嗎？')) {
         return;
       }
       resetLiveWorkspaceToInit();
+      showToast('已重設工作區，回到開始選單。', 'info');
       if (isAutoSyncEnabled) triggerAutoSyncIfEnabled();
     }
 
     function resetLiveWorkspaceToInit() {
       activeTourney = null;
+      editingOriginTourneyId = null;
       waitingHandQueue = [];
       clearInterval(durationTimer);
       clearCurrentStagingForm();
@@ -1395,10 +1515,10 @@
       el.className = `${cls} overflow-y-auto space-y-1 text-xs font-mono pr-1 divide-y divide-slate-800/60`;
     }
 
-    // --- 盲碼打點與人數/均碼更新 ---
+    // --- 9. 盲碼、進度與自由備忘打點 ---
     function submitQuickBlindStackUpdate() {
       if (!activeTourney) {
-        alert('請先開始一場錦標賽！');
+        showToast('請先開始一場錦標賽！', 'warn');
         return;
       }
 
@@ -1406,7 +1526,7 @@
       const stackVal = parseFloat(document.getElementById('quick-stack-input').value);
 
       if (isNaN(bbVal) && isNaN(stackVal)) {
-        alert('請填寫大盲或碼量！');
+        showToast('請填寫大盲或碼量！', 'warn');
         return;
       }
 
@@ -1435,12 +1555,12 @@
       saveStorageData();
       renderUI();
       if (isAutoSyncEnabled) triggerAutoSyncIfEnabled();
-      alert(`已更新盲注 (${activeTourney.currentBB}) 與碼量 (${activeTourney.currentStack.toLocaleString()})！`);
+      showToast(`已更新盲注 (${activeTourney.currentBB}) 與碼量！`, 'success');
     }
 
     function submitTournamentFieldUpdate() {
       if (!activeTourney) {
-        alert('請先開始一場錦標賽！');
+        showToast('請先開始一場錦標賽！', 'warn');
         return;
       }
 
@@ -1448,7 +1568,7 @@
       let totalVal = parseInt(document.getElementById('quick-total-entries-input').value);
 
       if (isNaN(leftVal) && isNaN(totalVal)) {
-        alert('請輸入剩餘人數或總參賽人次！');
+        showToast('請輸入剩餘人數或總參賽人次！', 'warn');
         return;
       }
 
@@ -1483,12 +1603,12 @@
       saveStorageData();
       renderUI();
       if (isAutoSyncEnabled) triggerAutoSyncIfEnabled();
-      alert(`已更新錦標賽人數！均碼: ${avgStr} (${avgBBStr})`);
+      showToast(`已更新人數！均碼: ${avgStr} (${avgBBStr})`, 'success');
     }
 
     function submitQuickFreeNote() {
       if (!activeTourney) {
-        alert('請先開始一場錦標賽！');
+        showToast('請先開始一場錦標賽！', 'warn');
         return;
       }
       const input = document.getElementById('quick-free-note-input');
@@ -1510,6 +1630,7 @@
       saveStorageData();
       renderUI();
       if (isAutoSyncEnabled) triggerAutoSyncIfEnabled();
+      showToast('已記下備忘文字', 'info');
     }
 
     function calculateAndSetAverageStack() {
@@ -1526,7 +1647,7 @@
       }
     }
 
-    // --- 歷程編輯彈窗與防呆 ---
+    // --- 10. 歷程編輯彈窗與連動 ---
     function openEditHandModal(logId) {
       if (!activeTourney) return;
       const log = activeTourney.hands.find(x => x.id === logId);
@@ -1644,7 +1765,7 @@
         const newHandCode = document.getElementById('edit-hand-code').value.trim().toUpperCase();
         const validHand = MATRIX_LABELS.find(x => x.toUpperCase() === newHandCode);
         if (!validHand) {
-          alert('請輸入有效手牌代碼 (如 AKs, 88)！');
+          showToast('請輸入有效手牌代碼 (如 AKs, 88)！', 'warn');
           return;
         }
         log.hand = validHand;
@@ -1693,6 +1814,7 @@
       renderUI();
       closeEditHandModal();
       if (isAutoSyncEnabled) triggerAutoSyncIfEnabled();
+      showToast('歷程紀錄修改完成！', 'success');
     }
 
     function deleteActiveEditingHand() {
@@ -1711,6 +1833,7 @@
       renderUI();
       closeEditHandModal();
       if (isAutoSyncEnabled) triggerAutoSyncIfEnabled();
+      showToast('已刪除該筆紀錄', 'info');
     }
 
     function recalculateHandStats() {
@@ -1728,7 +1851,7 @@
       activeTourney.handStats = stats;
     }
 
-    // --- 過往賽事完整詳情回放視窗 ---
+    // --- 11. 過往賽事完整詳情回放視窗 ---
     function openTourneyDetailModal(tourneyId) {
       const tourney = careerTournaments.find(t => t.id === tourneyId);
       if (!tourney) return;
@@ -1777,7 +1900,7 @@
               <span class="flex items-center gap-1.5">
                 <span class="font-bold text-amber-300 font-mono">${h.hand}</span>
                 <span class="px-1 py-0.2 rounded bg-slate-800 text-[10px] text-amber-400 font-bold font-mono">${h.pos}</span>
-                <span class="text-[11px] text-slate-300">${h.actionType}</span>
+                <span class="text-slate-300 text-[11px]">${h.actionType}</span>
               </span>
               <span class="text-slate-500 font-mono text-[10px]">${h.time}</span>
             </div>
@@ -1807,7 +1930,31 @@
       saveStorageData();
       closeTourneyDetailModal();
       renderCareerSummary();
+      showToast('已刪除該場賽事紀錄', 'info');
       if (isAutoSyncEnabled) triggerAutoSyncIfEnabled();
+    }
+
+    // --- 載回編輯且不刪除原賽事 ---
+    function loadTourneyToLiveWorkspaceById(tourneyId) {
+      const tourney = careerTournaments.find(t => t.id === tourneyId);
+      if (!tourney) return;
+
+      if (activeTourney && activeTourney.status === 'active') {
+        if (!confirm(`目前已有進行中的賽事「${activeTourney.name}」！\n\n載入「${tourney.name}」將會覆蓋當前工作區，確定要載入嗎？`)) {
+          return;
+        }
+      }
+
+      activeTourney = JSON.parse(JSON.stringify(tourney));
+      activeTourney.status = 'active';
+      editingOriginTourneyId = tourneyId;
+
+      waitingHandQueue = [];
+      saveStorageData();
+      switchCareerTab('live');
+      renderUI();
+
+      showToast(`已成功載回「${tourney.name}」！修改完後可確認覆蓋或捨棄。`, 'success');
     }
 
     // --- 手動快速補登賽事 ---
@@ -1815,6 +1962,11 @@
       document.getElementById('modal-quick-entry').classList.remove('hidden');
       initDefaultDateTime();
       document.getElementById('qentry-profit').value = '';
+      document.getElementById('qentry-buyin').value = '';
+      document.getElementById('qentry-buyin-count').value = '1';
+      document.getElementById('qentry-time-start').value = '';
+      document.getElementById('qentry-time-end').value = '';
+      document.getElementById('qentry-duration-hours').value = '';
       document.getElementById('qentry-name').value = '';
     }
 
@@ -1825,31 +1977,42 @@
     function confirmQuickManualEntry() {
       const dateVal = document.getElementById('qentry-date').value;
       const profitVal = parseFloat(document.getElementById('qentry-profit').value);
-      const timeVal = document.getElementById('qentry-time').value;
+      const buyinVal = parseFloat(document.getElementById('qentry-buyin').value) || 0;
+      const buyinCount = parseInt(document.getElementById('qentry-buyin-count').value) || 1;
+      const timeStart = document.getElementById('qentry-time-start').value;
+      const timeEnd = document.getElementById('qentry-time-end').value;
+      const durationHours = parseFloat(document.getElementById('qentry-duration-hours').value) || 0;
+      const typeVal = document.getElementById('qentry-type').value;
       const nameVal = document.getElementById('qentry-name').value.trim() || '快速記帳賽事';
 
       if (!dateVal) {
-        alert('請選擇賽事日期！');
+        showToast('請選擇賽事日期！', 'warn');
         return;
       }
       if (isNaN(profitVal)) {
-        alert('請輸入淨損益金額（獲利填正數，損失填負數）！');
+        showToast('請輸入淨損益金額（獲利為正，虧損為負）！', 'warn');
         return;
       }
 
-      const isWin = profitVal >= 0;
+      const totalBuyin = buyinVal * buyinCount;
+      const finalCashout = Math.max(0, totalBuyin + profitVal);
+      const roi = totalBuyin > 0 ? ((profitVal / totalBuyin) * 100).toFixed(1) : 0;
+      const totalMins = durationHours > 0 ? Math.round(durationHours * 60) : 0;
+
       const entryObj = {
         id: 'qt_' + Date.now(),
         name: nameVal,
-        type: '快速補登',
+        type: typeVal,
         date: dateVal,
-        startTime: `${dateVal}T${timeVal || '12:00'}`,
-        buyin: isWin ? 0 : Math.abs(profitVal),
-        cashout: isWin ? profitVal : 0,
+        startTime: `${dateVal}T${timeStart || '12:00'}`,
+        endTime: timeEnd ? `${dateVal}T${timeEnd}` : '',
+        buyin: totalBuyin,
+        rebuyCount: Math.max(0, buyinCount - 1),
+        cashout: finalCashout,
         netProfit: profitVal,
-        roi: 0,
-        totalMinutes: 0,
-        rank: isWin ? '獲利' : '虧損',
+        roi: roi,
+        totalMinutes: totalMins,
+        rank: profitVal >= 0 ? '獲利完賽' : '出局/虧損',
         hands: [],
         handStats: {},
         status: 'completed'
@@ -1860,7 +2023,199 @@
       renderCareerSummary();
       closeQuickManualEntryModal();
       if (isAutoSyncEnabled) triggerAutoSyncIfEnabled();
-      alert(`已成功補登「${nameVal}」賽事紀錄！淨損益: ${profitVal >= 0 ? '+$' : '-$'}${Math.abs(profitVal)}`);
+      showToast(`已補登「${nameVal}」！淨利: ${profitVal >= 0 ? '+$' : '-$'}${Math.abs(profitVal)}`, 'success');
+    }
+
+    // --- 12. 即時雙軸折線圖繪製引擎 (SVG DUAL-AXIS CHART) ---
+    function renderDualAxisChart() {
+      const svg = document.getElementById('live-dual-chart');
+      const placeholder = document.getElementById('chart-empty-placeholder');
+      const summaryLabel = document.getElementById('chart-status-summary');
+      if (!svg) return;
+
+      if (!activeTourney || !activeTourney.hands) {
+        svg.innerHTML = '';
+        if (placeholder) placeholder.classList.remove('hidden');
+        if (summaryLabel) summaryLabel.textContent = '點數: 0 個';
+        return;
+      }
+
+      // 提取歷史點列 (起點 + 每一手牌/盲碼事件)
+      const points = [];
+      // 起點 0
+      const initialBB = activeTourney.startBB || 200;
+      const initialStack = activeTourney.startStack || 30000;
+      points.push({
+        idx: 0,
+        time: activeTourney.startTime ? activeTourney.startTime.slice(11, 16) : '00:00',
+        title: '起始籌碼',
+        stack: initialStack,
+        bb: initialStack / initialBB,
+        currentBB: initialBB,
+        type: 'init'
+      });
+
+      let currentBBTracker = initialBB;
+      activeTourney.hands.forEach((h, index) => {
+        if (h.type === 'state') {
+          if (h.bb) currentBBTracker = h.bb;
+        } else if (h.type === 'rebuy') {
+          if (h.bb) currentBBTracker = h.bb;
+        }
+
+        const stack = h.resultingStack !== undefined ? h.resultingStack : initialStack;
+        const bbCount = currentBBTracker > 0 ? (stack / currentBBTracker) : 0;
+        
+        let title = '';
+        if (!h.type || h.type === 'hand') {
+          title = `${h.hand} (${h.pos}) ${h.actionType || ''}`;
+        } else if (h.type === 'state') {
+          title = `盲注: ${h.bb} / 碼: ${h.stack}`;
+        } else if (h.type === 'field') {
+          title = `剩餘: ${h.playersLeft} 人`;
+        } else if (h.type === 'rebuy') {
+          title = `Rebuy +$${(h.rebuyAmount || 0).toLocaleString()}`;
+        } else if (h.type === 'text') {
+          title = `備忘: ${h.text || ''}`;
+        }
+
+        points.push({
+          idx: index + 1,
+          time: h.time || '',
+          title: title,
+          stack: stack,
+          bb: bbCount,
+          currentBB: currentBBTracker,
+          type: h.type || 'hand',
+          outcome: h.outcome || ''
+        });
+      });
+
+      if (points.length <= 1) {
+        svg.innerHTML = '';
+        if (placeholder) placeholder.classList.remove('hidden');
+        if (summaryLabel) summaryLabel.textContent = '點數: 1 個 (待更多打點)';
+        return;
+      }
+
+      if (placeholder) placeholder.classList.add('hidden');
+      if (summaryLabel) summaryLabel.textContent = `點數: ${points.length} 個 | 最新: ${points[points.length - 1].stack.toLocaleString()} 碼 (${points[points.length - 1].bb.toFixed(1)} BB)`;
+
+      // 計算邊界與縮放比例
+      const W = 800;
+      const H = 200;
+      const paddingX = 40;
+      const paddingTop = 25;
+      const paddingBottom = 30;
+
+      const plotW = W - paddingX * 2;
+      const plotH = H - paddingTop - paddingBottom;
+
+      const maxBB = Math.max(50, ...points.map(p => p.bb)) * 1.15;
+      const minBB = 0;
+
+      const maxStack = Math.max(initialStack, ...points.map(p => p.stack)) * 1.15;
+      const minStack = 0;
+
+      const getX = (i) => paddingX + (i / (points.length - 1)) * plotW;
+      const getY_BB = (val) => paddingTop + plotH - ((val - minBB) / (maxBB - minBB)) * plotH;
+      const getY_Stack = (val) => paddingTop + plotH - ((val - minStack) / (maxStack - minStack)) * plotH;
+
+      // 產生路徑點
+      const bbPoints = points.map((p, i) => `${getX(i)},${getY_BB(p.bb)}`);
+      const stackPoints = points.map((p, i) => `${getX(i)},${getY_Stack(p.stack)}`);
+
+      // 漸層色定義
+      let svgHTML = `
+        <defs>
+          <linearGradient id="gradBB" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.35"/>
+            <stop offset="100%" stop-color="#06b6d4" stop-opacity="0.0"/>
+          </linearGradient>
+          <linearGradient id="gradStack" x1="0%" y1="0%" x2="0%" y2="100%">
+            <stop offset="0%" stop-color="#10b981" stop-opacity="0.25"/>
+            <stop offset="100%" stop-color="#10b981" stop-opacity="0.0"/>
+          </linearGradient>
+        </defs>
+
+        <!-- 背景水平網格線 -->
+        <line x1="${paddingX}" y1="${paddingTop}" x2="${W - paddingX}" y2="${paddingTop}" stroke="#1e293b" stroke-dasharray="3,3" />
+        <line x1="${paddingX}" y1="${paddingTop + plotH * 0.5}" x2="${W - paddingX}" y2="${paddingTop + plotH * 0.5}" stroke="#1e293b" stroke-dasharray="3,3" />
+        <line x1="${paddingX}" y1="${paddingTop + plotH}" x2="${W - paddingX}" y2="${paddingTop + plotH}" stroke="#334155" />
+
+        <!-- 刻度文字標示 -->
+        <text x="${paddingX - 6}" y="${paddingTop + 4}" fill="#06b6d4" font-size="9" text-anchor="end" font-family="monospace">${Math.round(maxBB)} BB</text>
+        <text x="${paddingX - 6}" y="${paddingTop + plotH}" fill="#64748b" font-size="9" text-anchor="end" font-family="monospace">0</text>
+        <text x="${W - paddingX + 6}" y="${paddingTop + 4}" fill="#10b981" font-size="9" text-anchor="start" font-family="monospace">${Math.round(maxStack / 1000)}k</text>
+
+        <!-- 大盲 BB 曲線底層面積與折線 -->
+        <polygon points="${getX(0)},${paddingTop + plotH} ${bbPoints.join(' ')} ${getX(points.length - 1)},${paddingTop + plotH}" fill="url(#gradBB)" />
+        <polyline fill="none" stroke="#06b6d4" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="${bbPoints.join(' ')}" />
+
+        <!-- 碼量 Stack 曲線與折線 -->
+        <polyline fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="4,2" points="${stackPoints.join(' ')}" />
+      `;
+
+      // 產生各點互動節點圓點
+      points.forEach((p, i) => {
+        const x = getX(i);
+        const yBB = getY_BB(p.bb);
+        const yStack = getY_Stack(p.stack);
+
+        // 圓點節點
+        svgHTML += `
+          <!-- 碼量節點 (綠) -->
+          <circle cx="${x}" cy="${yStack}" r="3" fill="#10b981" stroke="#0f172a" stroke-width="1.5" class="chart-point"
+                  onmouseenter="showChartTooltip(event, ${i})" onmouseleave="hideChartTooltip()" onclick="showChartTooltip(event, ${i})" />
+
+          <!-- 大盲節點 (藍) -->
+          <circle cx="${x}" cy="${yBB}" r="4" fill="#06b6d4" stroke="#ffffff" stroke-width="1.5" class="chart-point"
+                  onmouseenter="showChartTooltip(event, ${i})" onmouseleave="hideChartTooltip()" onclick="showChartTooltip(event, ${i})" />
+        `;
+      });
+
+      svg.innerHTML = svgHTML;
+      window._activeChartPoints = points;
+    }
+
+    function showChartTooltip(e, index) {
+      const tooltip = document.getElementById('chart-tooltip');
+      const titleEl = document.getElementById('tooltip-title');
+      const bodyEl = document.getElementById('tooltip-body');
+      if (!tooltip || !window._activeChartPoints) return;
+
+      const p = window._activeChartPoints[index];
+      if (!p) return;
+
+      titleEl.innerHTML = `#${p.idx} ${p.title} <span class="text-slate-400 font-normal">(${p.time})</span>`;
+      bodyEl.innerHTML = `
+        <div class="flex items-center gap-3 mt-1">
+          <span class="text-emerald-300 font-bold">碼量: ${p.stack.toLocaleString()}</span>
+          <span class="text-cyan-300 font-bold">大盲: ${p.bb.toFixed(1)} BB</span>
+          <span class="text-slate-400">(盲級: ${p.currentBB})</span>
+        </div>
+      `;
+
+      // 取得相對於 svg 容器的坐標
+      const rect = e.target.getBoundingClientRect();
+      const parentRect = tooltip.parentElement.getBoundingClientRect();
+
+      let left = rect.left - parentRect.left - 60;
+      let top = rect.top - parentRect.top - 50;
+
+      // 邊界防溢出
+      if (left < 10) left = 10;
+      if (left > parentRect.width - 200) left = parentRect.width - 200;
+      if (top < 10) top = rect.bottom - parentRect.top + 10;
+
+      tooltip.style.left = `${left}px`;
+      tooltip.style.top = `${top}px`;
+      tooltip.classList.remove('hidden');
+    }
+
+    function hideChartTooltip() {
+      const tooltip = document.getElementById('chart-tooltip');
+      if (tooltip) tooltip.classList.add('hidden');
     }
 
     // --- UI & HEATMAP RENDERING ---
@@ -1880,6 +2235,13 @@
         document.getElementById('hud-type-badge').textContent = activeTourney.type;
         document.getElementById('hud-buyin').textContent = '$' + activeTourney.buyin.toLocaleString();
         
+        const editTag = document.getElementById('hud-edit-origin-tag');
+        if (editingOriginTourneyId) {
+          editTag.classList.remove('hidden');
+        } else {
+          editTag.classList.add('hidden');
+        }
+
         const rebuyTag = document.getElementById('hud-rebuy-tag');
         if (activeTourney.rebuyCount && activeTourney.rebuyCount > 0) {
           rebuyTag.textContent = `(含 ${activeTourney.rebuyCount} 次加買)`;
@@ -1914,6 +2276,7 @@
 
         renderLiveLogs();
         renderHeatmap();
+        renderDualAxisChart(); // 即時重繪雙軸折線圖
         startDurationTimer();
       }
     }
@@ -2099,6 +2462,7 @@
         status: 'active'
       };
 
+      editingOriginTourneyId = null;
       calculateAndSetAverageStack();
       waitingHandQueue = [];
       clearCurrentStagingForm();
@@ -2110,12 +2474,49 @@
     function openFinishModal() {
       if (!activeTourney) return;
       document.getElementById('modal-finish').classList.remove('hidden');
-      document.getElementById('finish-cashout').value = '';
-      document.getElementById('finish-rank').value = '';
+      document.getElementById('finish-cashout').value = activeTourney.cashout !== undefined ? activeTourney.cashout : '';
+      document.getElementById('finish-rank').value = activeTourney.rank || '';
+
+      const titleEl = document.getElementById('finish-modal-title');
+      const descEl = document.getElementById('finish-modal-desc');
+      const actionsEl = document.getElementById('finish-modal-actions');
+
+      if (editingOriginTourneyId) {
+        titleEl.textContent = '賽事編輯確認與儲存';
+        descEl.textContent = '此賽事為過去歷史檔案載回編輯。您可以選擇【確認存入並覆蓋原資料】，或是【捨棄所有編輯】恢復原狀。';
+        actionsEl.innerHTML = `
+          <button onclick="abandonEditAndRevert()" class="px-3 py-1.5 bg-rose-950 hover:bg-rose-900 border border-rose-800 text-rose-300 rounded text-xs font-bold transition">
+            ❌ 捨棄所有編輯
+          </button>
+          <div class="flex gap-1.5">
+            <button onclick="closeFinishModal()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs">繼續編輯</button>
+            <button onclick="confirmFinishTournament()" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded text-xs transition">
+              💾 確認存入並覆蓋原資料
+            </button>
+          </div>
+        `;
+      } else {
+        titleEl.textContent = '賽事結算與生涯存檔';
+        descEl.textContent = '恭喜完成此場賽事！輸入最終收穫獎金與名次，系統自動結算淨利與 ROI。';
+        actionsEl.innerHTML = `
+          <button onclick="closeFinishModal()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-xs">取消</button>
+          <button onclick="confirmFinishTournament()" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded text-xs transition">
+            確認結算並存檔
+          </button>
+        `;
+      }
     }
 
     function closeFinishModal() {
       document.getElementById('modal-finish').classList.add('hidden');
+    }
+
+    function abandonEditAndRevert() {
+      if (!confirm('確定要捨棄此次載入的所有修改嗎？原賽事紀錄將維持不變。')) return;
+      closeFinishModal();
+      resetLiveWorkspaceToInit();
+      switchCareerTab('history');
+      showToast('已捨棄本次所有編輯內容。', 'info');
     }
 
     function confirmFinishTournament() {
@@ -2135,13 +2536,23 @@
       activeTourney.rank = rank;
       activeTourney.status = 'completed';
 
-      careerTournaments.unshift(activeTourney);
-      
+      if (editingOriginTourneyId) {
+        const idx = careerTournaments.findIndex(t => t.id === editingOriginTourneyId);
+        if (idx !== -1) {
+          careerTournaments[idx] = JSON.parse(JSON.stringify(activeTourney));
+        } else {
+          careerTournaments.unshift(JSON.parse(JSON.stringify(activeTourney)));
+        }
+        showToast('已確認存入並完整覆蓋原歷史賽事！', 'success');
+      } else {
+        careerTournaments.unshift(JSON.parse(JSON.stringify(activeTourney)));
+        showToast('🏆 賽事已成功結算並永久歸檔！', 'success');
+      }
+
       closeFinishModal();
-      resetLiveWorkspaceToInit(); // 徹底重置實戰區並展開起始選單
+      resetLiveWorkspaceToInit();
       switchCareerTab('history');
       if (isAutoSyncEnabled) uploadToCloud();
-      alert('🏆 賽事已成功結算並永久歸檔於生涯檔案庫！');
     }
 
     function switchCareerTab(tab) {
@@ -2157,6 +2568,7 @@
         btnLive.className = 'px-2.5 py-1 rounded font-bold text-white bg-blue-600 transition text-xs';
         btnHist.className = 'px-2.5 py-1 rounded font-medium text-slate-400 hover:text-white transition text-xs';
         renderHeatmap();
+        renderDualAxisChart();
       } else {
         viewLive.classList.add('hidden');
         viewHist.classList.remove('hidden');
@@ -2220,13 +2632,16 @@
             </div>
           </div>
 
-          <div class="flex items-center gap-3">
-            <div class="text-right font-mono">
+          <div class="flex items-center gap-1.5">
+            <div class="text-right font-mono mr-1">
               <div class="text-xs text-slate-400">買入 $${(t.buyin || 0).toLocaleString()} ➔ 獲得 $${(t.cashout || 0).toLocaleString()}</div>
               <div class="font-bold text-xs ${pClass}">淨利: ${pNet >= 0 ? '+$' : '-$'}${Math.abs(pNet).toLocaleString()}</div>
             </div>
-            <button onclick="openTourneyDetailModal('${t.id}')" class="px-2.5 py-1.5 bg-blue-600/80 hover:bg-blue-600 text-white rounded text-xs font-bold transition flex items-center gap-1">
-              <span>🔍</span> 詳情
+            <button onclick="openTourneyDetailModal('${t.id}')" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 rounded text-xs transition">
+              詳情
+            </button>
+            <button onclick="loadTourneyToLiveWorkspaceById('${t.id}')" class="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded text-xs font-bold transition flex items-center gap-1 shadow">
+              <span>📥</span> 載回編輯
             </button>
           </div>
         </div>`;
@@ -2302,7 +2717,7 @@
       try {
         parsedCfg = JSON.parse(rawCfg);
       } catch (e) {
-        alert('Firebase Config 格式錯誤，必須為標準 JSON 格式！');
+        showToast('Firebase Config 格式錯誤，必須為標準 JSON 格式！', 'error');
         return;
       }
 
@@ -2331,6 +2746,7 @@
         isCloudConfigured = true;
         updateCloudStatus(true, `已連通 (${room})`);
         setupRealtimeListener(room);
+        showToast(`已成功連上雲端伺服器 (房間: ${room})`, 'success');
       } catch (err) {
         console.warn('Firebase init error:', err);
         updateCloudStatus(false, '連線未配置');
@@ -2381,9 +2797,9 @@
         updateCloudStatus(true, '正在上傳...');
         await firestoreDB.collection('tournament_careers').doc(room).set(payload);
         updateCloudStatus(true, `已上傳 (${payload.updatedAt})`);
-        alert('☁️ 已成功將所有賽事進度、手牌熱度與生涯紀錄同步至雲端！');
+        showToast('☁️ 賽事進度、手牌熱度與生涯紀錄已同步至雲端！', 'success');
       } catch (e) {
-        alert('上傳失敗: ' + e.message);
+        showToast('上傳失敗: ' + e.message, 'error');
         updateCloudStatus(false, '上傳失敗');
       }
     }
@@ -2416,7 +2832,7 @@
         updateCloudStatus(true, '正在下載...');
         const doc = await firestoreDB.collection('tournament_careers').doc(room).get();
         if (!doc.exists) {
-          alert('雲端目前尚無此房間的紀錄！');
+          showToast('雲端目前尚無此房間的紀錄！', 'warn');
           return;
         }
 
@@ -2430,10 +2846,10 @@
           renderWaitingQueue();
           renderDynamicPositionButtons();
           updateCloudStatus(true, `已完全覆蓋 (${data.updatedAt})`);
-          alert('🎉 雲端生涯紀錄已完整覆蓋載入成功！');
+          showToast('🎉 雲端生涯紀錄已完整覆蓋載入成功！', 'success');
         }
       } catch (e) {
-        alert('下載失敗: ' + e.message);
+        showToast('下載失敗: ' + e.message, 'error');
       }
     }
 
