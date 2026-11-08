@@ -117,7 +117,7 @@
           <p class="text-xs text-slate-400 mt-1" id="dash-session-hint">你已累計記錄 0 場錦標賽，持之以恆，讓決策品質帶動勝率。</p>
         </div>
         <button onclick="switchMainTab('live')" class="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-blue-900/40 transition flex items-center gap-2">
-          <span>🚀</span> 開始新錦標賽
+          <span>🚀</span> 進入實戰戰情
         </button>
       </div>
 
@@ -214,7 +214,19 @@
     <!-- TAB 2: 實戰戰情打點 (Live Table)              -->
     <!-- ============================================== -->
     <div id="view-live" class="hidden flex flex-col gap-3">
-      <!-- 建立新賽事表單 -->
+      
+      <!-- 快捷手動切換工具列 (滿足你的手動切換需求) -->
+      <div class="flex justify-between items-center bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl text-xs">
+        <span class="text-slate-400 flex items-center gap-1.5">
+          <span>🕹️</span> 實戰工作區模式切換:
+          <span id="current-view-mode-label" class="text-amber-400 font-bold font-mono">自動偵測中</span>
+        </span>
+        <button onclick="toggleLiveViewModeManual()" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/40 rounded-lg font-medium transition flex items-center gap-1">
+          <span>🔄</span> 手動切換 表單 / 實戰儀表板
+        </button>
+      </div>
+
+      <!-- 建立新賽事表單 (未開賽時顯示) -->
       <div id="box-start-tournament" class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl flex flex-col gap-4 max-w-4xl mx-auto w-full">
         <div class="border-b border-slate-800 pb-3">
           <h2 class="text-base sm:text-lg font-bold text-amber-400 flex items-center gap-2">
@@ -1064,6 +1076,32 @@
       }
     }
 
+    // --- 手動切換工作區視圖 (滿足你的手動按鈕需求) ---
+    function toggleLiveViewModeManual() {
+      const boxSetup = document.getElementById('box-start-tournament');
+      const boxLive = document.getElementById('box-live-workspace');
+      if (!boxSetup || !boxLive) return;
+
+      const isLiveVisible = !boxLive.classList.contains('hidden');
+      if (isLiveVisible) {
+        // 切換至建立表單
+        boxLive.classList.add('hidden');
+        boxSetup.classList.remove('hidden');
+        document.getElementById('current-view-mode-label').textContent = '建立新賽事表單';
+        showToast('已手動切換至【建立新賽事表單】', 'info');
+      } else {
+        // 切換至實戰打點區 (若無進行中賽事給予提示)
+        if (!activeTourney) {
+          showToast('目前無進行中賽事，建議先填寫下方表單點擊開始！', 'warn');
+        }
+        boxSetup.classList.add('hidden');
+        boxLive.classList.remove('hidden');
+        document.getElementById('current-view-mode-label').textContent = '實戰打點儀表板';
+        renderDualAxisChart();
+        showToast('已手動切換至【實戰打點儀表板】', 'info');
+      }
+    }
+
     // --- TAB 導覽切換 ---
     function switchMainTab(tab) {
       const tabs = ['dashboard', 'live', 'review', 'analytics'];
@@ -1162,11 +1200,7 @@
     }
 
     function computeBehaviorTags() {
-      let totalHands = 0;
-      let vpipHands = 0;
-      let threeBetHands = 0;
-      let totalRebuys = 0;
-
+      let totalHands = 0, vpipHands = 0, threeBetHands = 0, totalRebuys = 0;
       careerTournaments.forEach(t => {
         totalRebuys += (t.rebuyCount || 0);
         if (t.hands) {
@@ -2343,14 +2377,17 @@
     function renderUI() {
       const boxSetup = document.getElementById('box-start-tournament');
       const boxLive = document.getElementById('box-live-workspace');
+      const modeLabel = document.getElementById('current-view-mode-label');
 
       if (!activeTourney || activeTourney.status !== 'active') {
         if (boxSetup) boxSetup.classList.remove('hidden');
         if (boxLive) boxLive.classList.add('hidden');
+        if (modeLabel) modeLabel.textContent = '建立新賽事表單';
         renderHeatmap();
       } else {
         if (boxSetup) boxSetup.classList.add('hidden');
         if (boxLive) boxLive.classList.remove('hidden');
+        if (modeLabel) modeLabel.textContent = '實戰打點儀表板';
 
         const elName = document.getElementById('hud-tourney-name');
         if (elName) elName.textContent = activeTourney.name || '錦標賽';
@@ -2507,6 +2544,147 @@
         }
       });
       if (container) container.innerHTML = html;
+    }
+
+    // --- 開始記錄賽事 (帶有強大除錯與安全回退) ---
+    function startNewTournamentSession() {
+      try {
+        const nameEl = document.getElementById('init-tourney-name');
+        const typeEl = document.getElementById('init-tourney-type');
+        const buyinEl = document.getElementById('init-buyin');
+        const startTimeEl = document.getElementById('init-start-time');
+        const startStackEl = document.getElementById('init-start-stack');
+        const startBBEl = document.getElementById('init-start-bb');
+        const entriesEl = document.getElementById('init-total-entries');
+        const prizePoolEl = document.getElementById('init-prize-pool');
+
+        const name = (nameEl && nameEl.value.trim()) ? nameEl.value.trim() : '未命名錦標賽';
+        const type = (typeEl && typeEl.value) ? typeEl.value : '錦標賽 (MTT)';
+        const buyin = (buyinEl && !isNaN(parseFloat(buyinEl.value))) ? parseFloat(buyinEl.value) : 10000;
+        const startTime = (startTimeEl && startTimeEl.value) ? startTimeEl.value : new Date().toISOString();
+        const startStack = (startStackEl && !isNaN(parseFloat(startStackEl.value)) && parseFloat(startStackEl.value) > 0) ? parseFloat(startStackEl.value) : 30000;
+        const startBB = (startBBEl && !isNaN(parseFloat(startBBEl.value)) && parseFloat(startBBEl.value) > 0) ? parseFloat(startBBEl.value) : 200;
+        const totalEntries = (entriesEl && !isNaN(parseInt(entriesEl.value))) ? Math.max(0, parseInt(entriesEl.value)) : 0;
+        const prizePool = (prizePoolEl && !isNaN(parseFloat(prizePoolEl.value))) ? parseFloat(prizePoolEl.value) : null;
+
+        activeTourney = {
+          id: 't_' + Date.now(),
+          name: name,
+          type: type,
+          buyin: buyin,
+          rebuyCount: 0,
+          prizePool: prizePool,
+          startTime: startTime,
+          startStack: startStack,
+          startBB: startBB,
+          currentStack: startStack,
+          currentBB: startBB,
+          totalEntries: totalEntries,
+          playersLeft: totalEntries || 0,
+          avgStack: startStack,
+          avgBB: (startStack / startBB).toFixed(1),
+          hands: [],
+          handStats: {},
+          status: 'active'
+        };
+
+        editingOriginTourneyId = null;
+        calculateAndSetAverageStack();
+        waitingHandQueue = [];
+        clearCurrentStagingForm();
+        saveStorageData();
+        renderUI();
+        if (isAutoSyncEnabled) triggerAutoSyncIfEnabled();
+        showToast(`已成功開始「${name}」！`, 'success');
+      } catch (err) {
+        console.error('startNewTournamentSession error:', err);
+        showToast('啟動賽事失敗: ' + err.message, 'error');
+      }
+    }
+
+    function openFinishModal() {
+      if (!activeTourney) return;
+      document.getElementById('modal-finish').classList.remove('hidden');
+      document.getElementById('finish-cashout').value = activeTourney.cashout !== undefined ? activeTourney.cashout : '';
+      document.getElementById('finish-rank').value = activeTourney.rank || '';
+    }
+
+    function closeFinishModal() {
+      document.getElementById('modal-finish').classList.add('hidden');
+    }
+
+    function confirmFinishTournament() {
+      if (!activeTourney) return;
+      const cashout = parseFloat(document.getElementById('finish-cashout').value) || 0;
+      const rank = document.getElementById('finish-rank').value.trim() || '完賽';
+
+      const endTime = new Date();
+      const startD = new Date(activeTourney.startTime);
+      const totalMinutes = Math.max(1, Math.round((endTime - startD) / 60000));
+
+      activeTourney.endTime = endTime.toISOString();
+      activeTourney.totalMinutes = totalMinutes;
+      activeTourney.cashout = cashout;
+      activeTourney.netProfit = cashout - activeTourney.buyin;
+      activeTourney.roi = activeTourney.buyin > 0 ? ((activeTourney.netProfit / activeTourney.buyin) * 100).toFixed(1) : 0;
+      activeTourney.rank = rank;
+      activeTourney.status = 'completed';
+
+      if (editingOriginTourneyId) {
+        const idx = careerTournaments.findIndex(t => t.id === editingOriginTourneyId);
+        if (idx !== -1) careerTournaments[idx] = JSON.parse(JSON.stringify(activeTourney));
+        else careerTournaments.unshift(JSON.parse(JSON.stringify(activeTourney)));
+      } else {
+        careerTournaments.unshift(JSON.parse(JSON.stringify(activeTourney)));
+      }
+
+      closeFinishModal();
+      resetLiveWorkspaceToInit();
+      switchMainTab('review');
+      if (isAutoSyncEnabled) uploadToCloud();
+      showToast('🏆 賽事已存檔！', 'success');
+    }
+
+    function renderCareerSummary() {
+      const totalGames = careerTournaments.length;
+      const cntEl = document.getElementById('career-tourney-count');
+      if (cntEl) cntEl.textContent = `共 ${totalGames} 筆`;
+      const listContainer = document.getElementById('career-list-container');
+      if (!listContainer) return;
+
+      if (totalGames === 0) {
+        listContainer.innerHTML = '<div class="text-slate-600 py-8 text-center italic">尚未有已結算的賽事。</div>';
+        return;
+      }
+
+      let html = '';
+      careerTournaments.forEach(t => {
+        const pNet = t.netProfit !== undefined ? t.netProfit : ((t.cashout || 0) - (t.buyin || 0));
+        const pClass = pNet >= 0 ? 'text-emerald-400' : 'text-rose-400';
+        const dateStr = t.startTime ? t.startTime.slice(0, 10) : t.date || '--';
+
+        html += `<div class="bg-slate-950 border border-slate-800 p-3 rounded-xl flex flex-wrap justify-between items-center gap-2 hover:border-slate-700 transition">
+          <div>
+            <div class="font-bold text-slate-100 text-sm flex items-center gap-2">
+              <span>${t.name}</span>
+              <span class="px-1.5 py-0.2 rounded text-[10px] bg-slate-800 text-cyan-300 font-mono">${t.type || 'MTT'}</span>
+              <span class="px-1.5 py-0.2 rounded text-[10px] bg-amber-950 text-amber-300 font-bold">${t.rank || '完賽'}</span>
+            </div>
+            <div class="text-[11px] text-slate-400 mt-0.5 font-mono">
+              時間: ${dateStr} | 手數: ${t.hands ? t.hands.length : 0} 手 | 耗時: ${t.totalMinutes || 0} 分鐘
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <div class="text-right font-mono mr-1">
+              <div class="text-xs text-slate-400">買入 $${(t.buyin || 0).toLocaleString()} ➔ $${(t.cashout || 0).toLocaleString()}</div>
+              <div class="font-bold text-xs ${pClass}">淨利: ${pNet >= 0 ? '+$' : '-$'}${Math.abs(pNet).toLocaleString()}</div>
+            </div>
+            <button onclick="openTourneyDetailModal('${t.id}')" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 rounded-lg text-xs transition cursor-pointer">詳情</button>
+            <button onclick="loadTourneyToLiveWorkspaceById('${t.id}')" class="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition cursor-pointer">📥 載回編輯</button>
+          </div>
+        </div>`;
+      });
+      listContainer.innerHTML = html;
     }
 
     function startDurationTimer() {
