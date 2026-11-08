@@ -111,7 +111,6 @@
     <!-- TAB 1: 總覽儀表板 (Dashboard)                 -->
     <!-- ============================================== -->
     <div id="view-dashboard" class="flex flex-col gap-3.5">
-      <!-- 頂部情緒問候與生涯快速統計 -->
       <div class="bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border border-slate-800 p-4 sm:p-5 rounded-2xl shadow-xl flex flex-wrap justify-between items-center gap-3">
         <div>
           <h2 class="text-lg sm:text-2xl font-black text-white tracking-wide" id="dash-greeting">夜深了，林林！</h2>
@@ -122,9 +121,7 @@
         </button>
       </div>
 
-      <!-- 近期戰績 KPI 卡片 (依據截圖 1 & 2 視覺風格) -->
       <div class="grid grid-cols-1 md:grid-cols-12 gap-3 sm:gap-4">
-        <!-- 核心戰績指標大卡片 -->
         <div class="md:col-span-7 bg-slate-900 border border-slate-800 p-4 sm:p-5 rounded-2xl shadow-xl flex flex-col justify-between gap-4">
           <div class="flex justify-between items-start">
             <div>
@@ -150,7 +147,6 @@
           </div>
         </div>
 
-        <!-- 賽季目標進度條 (Goal Tracking) -->
         <div class="md:col-span-5 bg-slate-900 border border-slate-800 p-4 sm:p-5 rounded-2xl shadow-xl flex flex-col justify-between gap-3">
           <div class="flex justify-between items-center">
             <span class="font-bold text-slate-200 flex items-center gap-1.5 text-xs sm:text-sm">
@@ -175,7 +171,6 @@
         </div>
       </div>
 
-      <!-- 近期行為觀察 (AI / 統計標籤引擎) -->
       <div class="bg-slate-900 border border-slate-800 p-4 sm:p-5 rounded-2xl shadow-xl flex flex-col gap-3">
         <div class="flex justify-between items-center border-b border-slate-800 pb-2">
           <span class="font-bold text-slate-200 text-xs sm:text-sm flex items-center gap-1.5">
@@ -185,7 +180,6 @@
         </div>
 
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2" id="behavior-tags-container">
-          <!-- 標籤將由 JS 動態生成 -->
           <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between">
             <span class="text-slate-300 font-medium text-xs">VPIP 傾向</span>
             <span class="text-amber-400 font-bold text-xs" id="tag-vpip-val">健康</span>
@@ -205,7 +199,6 @@
         </div>
       </div>
 
-      <!-- 最近戰績清單預覽 -->
       <div class="bg-slate-900 border border-slate-800 p-4 rounded-2xl shadow-xl flex flex-col gap-2.5">
         <div class="flex justify-between items-center text-xs">
           <span class="font-bold text-slate-200">最近場次速覽</span>
@@ -221,13 +214,13 @@
     <!-- TAB 2: 實戰戰情打點 (Live Table)              -->
     <!-- ============================================== -->
     <div id="view-live" class="hidden flex flex-col gap-3">
-      <!-- 建立新賽事表單 (未開賽時顯示) -->
+      <!-- 建立新賽事表單 -->
       <div id="box-start-tournament" class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xl flex flex-col gap-4 max-w-4xl mx-auto w-full">
         <div class="border-b border-slate-800 pb-3">
           <h2 class="text-base sm:text-lg font-bold text-amber-400 flex items-center gap-2">
             <span>🏁</span> 建立新錦標賽 / 進入牌局
           </h2>
-          <p class="text-xs text-slate-400 mt-1">填寫參賽資訊，系統自動啟動計時、雙軸波動圖、排隊手牌與盲注打點。</p>
+          <p class="text-xs text-slate-400 mt-1">填寫參賽資訊，點擊按鈕後立即開啟即時儀表板與手牌記錄。</p>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 text-xs">
@@ -271,7 +264,7 @@
         </div>
 
         <div class="pt-2 flex justify-end">
-          <button onclick="startNewTournamentSession()" class="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-blue-900/40 transition text-xs sm:text-sm flex items-center gap-2">
+          <button type="button" onclick="startNewTournamentSession()" class="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-blue-900/40 transition text-xs sm:text-sm flex items-center gap-2 cursor-pointer">
             <span>🔥</span> 開始記錄這場賽事
           </button>
         </div>
@@ -279,22 +272,22 @@
 
       <!-- 進行中比賽之工作區 -->
       <div id="box-live-workspace" class="hidden flex flex-col gap-3">
-        <!-- 即時雙軸折線圖 (大盲變化 BB & 碼量變化 Stack)[cite: 9] -->
+        <!-- 即時雙軸折線圖 -->
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 sm:p-4 shadow-xl flex flex-col gap-2 relative">
           <div class="flex justify-between items-center border-b border-slate-800/80 pb-2">
             <div class="flex items-center gap-2">
               <span class="text-sm">📈</span>
-              <span class="font-bold text-xs sm:text-sm text-white">大盲與籌碼雙軸波動圖 (動態即時繪製)[cite: 9]</span>
+              <span class="font-bold text-xs sm:text-sm text-white">大盲與籌碼雙軸波動圖 (動態即時繪製)</span>
             </div>
             
             <div class="flex items-center gap-3 text-[11px] font-mono">
               <span class="flex items-center gap-1.5">
                 <span class="w-2.5 h-2.5 rounded-full bg-cyan-400"></span>
-                <span class="text-cyan-300 font-bold">大盲 (BB)[cite: 9]</span>
+                <span class="text-cyan-300 font-bold">大盲 (BB)</span>
               </span>
               <span class="flex items-center gap-1.5">
                 <span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
-                <span class="text-emerald-300 font-bold">籌碼量 (Stack)[cite: 9]</span>
+                <span class="text-emerald-300 font-bold">籌碼量 (Stack)</span>
               </span>
             </div>
           </div>
@@ -305,7 +298,7 @@
               <div id="tooltip-title" class="font-bold text-cyan-300">手牌詳情</div>
               <div id="tooltip-body" class="text-slate-300 mt-0.5">--</div>
             </div>
-            <div id="chart-empty-placeholder" class="text-slate-600 text-xs italic">尚無足夠打點資料，開始記錄手牌或更新盲碼後自動生成即時波動曲線[cite: 9]</div>
+            <div id="chart-empty-placeholder" class="text-slate-600 text-xs italic">尚無足夠打點資料，開始記錄手牌或更新盲碼後自動生成即時波動曲線</div>
           </div>
         </div>
 
@@ -338,7 +331,6 @@
             </span>
           </div>
 
-          <!-- Buttons -->
           <div class="flex flex-wrap items-center gap-2">
             <div class="bg-slate-950 px-3 py-1 rounded-lg border border-slate-800 text-right">
               <div class="text-[10px] text-slate-400">自身碼量 / BB</div>
@@ -362,7 +354,7 @@
           </div>
         </div>
 
-        <!-- 電腦版三欄排版 (左4 / 中4 / 右4) -->
+        <!-- 電腦版三欄排版 -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 items-start">
           <!-- Col 1: 13x13 矩陣 -->
           <div class="lg:col-span-4 bg-slate-900 p-3 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-2">
@@ -383,7 +375,7 @@
             <div id="poker-matrix" class="grid-matrix bg-slate-950 p-1 rounded-xl border border-slate-800"></div>
           </div>
 
-          <!-- Col 2: 暫存卡片與語音聽寫打點 -->
+          <!-- Col 2: 暫存卡片與打點 -->
           <div class="lg:col-span-4 flex flex-col gap-3">
             <div class="bg-gradient-to-b from-slate-900 to-slate-950 p-3.5 rounded-2xl border-2 border-amber-500/50 shadow-2xl flex flex-col gap-2.5">
               <div class="flex justify-between items-center border-b border-slate-800 pb-2">
@@ -391,14 +383,12 @@
                   <span class="text-base">⏳</span>
                   <span class="font-bold text-amber-300 text-xs">當前編輯手牌</span>
                 </div>
-                <!-- 語音識別按鈕 (截圖 7 之語音功能) -->
                 <button type="button" onclick="startSpeechRecognition()" id="btn-speech-rec" class="px-2 py-0.5 rounded-full bg-rose-950/80 border border-rose-500/60 hover:bg-rose-900 text-rose-300 font-bold text-[10px] flex items-center gap-1 transition">
                   <span id="speech-dot" class="w-2 h-2 rounded-full bg-rose-500"></span>
-                  <span id="speech-btn-text">🎙️ 開口說，自動整理[cite: 13]</span>
+                  <span id="speech-btn-text">🎙️ 語音辨識輸入</span>
                 </button>
               </div>
 
-              <!-- 手牌代碼與手動輸入 -->
               <div class="flex items-center justify-between gap-2">
                 <div class="flex items-center gap-2">
                   <span class="text-xs text-slate-400 font-semibold">底牌:</span>
@@ -410,7 +400,6 @@
                 </div>
               </div>
 
-              <!-- 桌上人數與動態位置按鈕 -->
               <div class="bg-slate-950 p-2 rounded-xl border border-slate-800 flex flex-col gap-1.5">
                 <div class="flex justify-between items-center text-[11px]">
                   <div class="flex items-center gap-1.5">
@@ -432,7 +421,6 @@
                 <div id="dynamic-pos-container" class="grid grid-cols-10 gap-1 text-[10px] font-bold font-mono"></div>
               </div>
 
-              <!-- VPIP & 線路 -->
               <div class="grid grid-cols-2 gap-2 text-xs">
                 <div class="bg-slate-950 p-2 rounded-xl border border-slate-800 flex flex-col justify-center gap-1">
                   <label class="flex items-center gap-1.5 cursor-pointer select-none">
@@ -454,7 +442,6 @@
                 </div>
               </div>
 
-              <!-- 大盲、此手後碼量與自動損益切換 -->
               <div class="grid grid-cols-12 gap-1.5 text-xs">
                 <div class="col-span-4">
                   <label class="block text-slate-400 font-semibold mb-0.5 text-[10px]">大盲 (BB)</label>
@@ -474,7 +461,6 @@
                 </div>
               </div>
 
-              <!-- 筆記備忘 -->
               <div>
                 <label class="block text-slate-300 font-semibold mb-0.5 text-[10px]">手牌細節與翻後復盤備忘</label>
                 <textarea id="staged-notes" rows="2" placeholder="如: 轉牌被 check-raise 後棄牌..." class="w-full bg-slate-950 border border-slate-700 rounded p-1.5 text-xs text-slate-200 focus:outline-none"></textarea>
@@ -488,7 +474,6 @@
               </div>
             </div>
 
-            <!-- 等待佇列 -->
             <div class="bg-slate-900 border border-amber-600/30 p-2.5 rounded-2xl flex flex-col gap-1.5 shadow-md">
               <div class="flex justify-between items-center text-[11px]">
                 <span class="font-bold text-amber-300 flex items-center gap-1">
@@ -501,7 +486,6 @@
               </div>
             </div>
 
-            <!-- 盲碼與人數打點 -->
             <div class="bg-slate-900 p-3 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-2.5">
               <div class="grid grid-cols-12 gap-1.5 items-center">
                 <div class="col-span-4">
@@ -533,11 +517,11 @@
             </div>
           </div>
 
-          <!-- Col 3: 賽事實況時序流水帳 (電腦版移至右側獨立滾動) -->
+          <!-- Col 3: 賽事實況時序流水帳 -->
           <div class="lg:col-span-4 bg-slate-900 p-3 sm:p-3.5 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-2.5">
             <div class="flex justify-between items-center text-xs border-b border-slate-800 pb-2">
               <span class="font-bold text-slate-200 flex items-center gap-1.5">
-                <span>📜</span> 賽事歷程流水帳 (<span id="live-log-count">0</span>)[cite: 10]
+                <span>📜</span> 賽事歷程流水帳 (<span id="live-log-count">0</span>)
               </span>
               <div class="flex items-center gap-1">
                 <span class="text-[10px] text-slate-500">高度:</span>
@@ -584,7 +568,6 @@
         </div>
       </div>
 
-      <!-- 生涯過往賽事清單卡片 -->
       <div class="bg-slate-900 p-4 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-3">
         <div class="flex justify-between items-center text-xs border-b border-slate-800 pb-2">
           <span class="font-bold text-slate-200">過往賽事清單</span>
@@ -613,7 +596,6 @@
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 items-start">
-        <!-- 13x13 盈虧熱度圖 -->
         <div class="lg:col-span-7 bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-2.5">
           <div class="flex justify-between items-center text-xs">
             <span class="font-bold text-slate-200">13×13 生涯手牌盈虧圖譜 (BB/100)</span>
@@ -626,7 +608,6 @@
           <div id="analytics-matrix" class="grid-matrix bg-slate-950 p-1 rounded-xl border border-slate-800"></div>
         </div>
 
-        <!-- 單手牌抽屜明細與 GTO 偏離比對 -->
         <div class="lg:col-span-5 bg-slate-900 p-3.5 sm:p-4 rounded-2xl border border-slate-800 shadow-xl flex flex-col gap-3">
           <div class="flex justify-between items-center border-b border-slate-800 pb-2">
             <div class="flex items-center gap-2">
@@ -652,7 +633,6 @@
             </div>
           </div>
 
-          <!-- GTO 偏離度比對建議 -->
           <div class="bg-slate-950 p-2.5 rounded-xl border border-cyan-800/40 text-[11px] flex flex-col gap-1">
             <span class="font-bold text-cyan-300 flex items-center gap-1"><span>⚖️</span> GTO 偏離度比對分析</span>
             <p id="gto-deviation-text" class="text-slate-400 leading-relaxed">請點選左側任意手牌格子查看決策評估。</p>
@@ -815,7 +795,7 @@
   <div id="modal-tourney-detail" class="hidden fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
     <div class="bg-slate-900 border border-cyan-500/70 rounded-2xl max-w-lg w-full p-4 sm:p-5 shadow-2xl flex flex-col gap-3.5 max-h-[90vh] overflow-y-auto text-xs">
       <div class="flex justify-between items-center border-b border-slate-800 pb-2">
-        <h3 class="font-bold text-sm text-cyan-300 flex items-center gap-1.5"><span>🔍</span> 賽事詳細歷程回放[cite: 11]</h3>
+        <h3 class="font-bold text-sm text-cyan-300 flex items-center gap-1.5"><span>🔍</span> 賽事詳細歷程回放</h3>
         <button onclick="closeTourneyDetailModal()" class="text-slate-400 hover:text-white font-bold p-1">✕</button>
       </div>
       <div id="tourney-detail-summary" class="bg-slate-950 p-3 rounded-xl border border-slate-800 flex flex-col gap-1.5"></div>
@@ -960,7 +940,6 @@
       measurementId: "G-WDRHD3YH61"
     };
 
-    // GTO 基準頻率字典
     const GTO_BENCHMARK_RFI = {
       'AA': 100, 'KK': 100, 'QQ': 100, 'JJ': 100, 'TT': 100, '99': 100, '88': 100, '77': 80, '66': 60, '55': 45, '44': 30, '33': 20, '22': 15,
       'AKs': 100, 'AQs': 100, 'AJs': 100, 'ATs': 100, 'A9s': 80, 'A8s': 60, 'A7s': 55, 'A6s': 50, 'A5s': 90, 'A4s': 85, 'A3s': 70, 'A2s': 60,
@@ -1070,18 +1049,22 @@
     }
 
     function initDefaultDateTime() {
-      const now = new Date();
-      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-      const str = now.toISOString().slice(0, 16);
-      const timeInput = document.getElementById('init-start-time');
-      if (timeInput) timeInput.value = str;
+      try {
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        const str = now.toISOString().slice(0, 16);
+        const timeInput = document.getElementById('init-start-time');
+        if (timeInput) timeInput.value = str;
 
-      const dateOnly = str.slice(0, 10);
-      const qDate = document.getElementById('qentry-date');
-      if (qDate) qDate.value = dateOnly;
+        const dateOnly = str.slice(0, 10);
+        const qDate = document.getElementById('qentry-date');
+        if (qDate) qDate.value = dateOnly;
+      } catch (e) {
+        console.warn('initDefaultDateTime fallback', e);
+      }
     }
 
-    // --- TAB 導覽切換 (四層架構) ---
+    // --- TAB 導覽切換 ---
     function switchMainTab(tab) {
       const tabs = ['dashboard', 'live', 'review', 'analytics'];
       tabs.forEach(t => {
@@ -1104,9 +1087,8 @@
       else if (tab === 'analytics') renderAnalyticsHeatmap();
     }
 
-    // --- TAB 1: 總覽儀表板 (Dashboard) 數據計算與渲染 ---
+    // --- TAB 1: 總覽儀表板 ---
     function renderDashboard() {
-      // 晨昏問候
       const hour = new Date().getHours();
       let greeting = '你好，撲克手！';
       if (hour >= 23 || hour < 5) greeting = '夜深了，林林！';
@@ -1116,16 +1098,14 @@
       document.getElementById('dash-greeting').textContent = greeting;
 
       const totalGames = careerTournaments.length;
-      document.getElementById('dash-session-hint').textContent = `你已累計記錄 ${totalGames} 場賽事，大數據正在幫你提煉行為特徵。[cite: 7, 8]`;
+      document.getElementById('dash-session-hint').textContent = `你已累計記錄 ${totalGames} 場賽事，大數據正在幫你提煉行為特徵。`;
 
-      // 最近 15 場戰績
       const recent15 = careerTournaments.slice(0, 15);
-      let rBuyin = 0, rCashout = 0, rMins = 0, rHands = 0;
+      let rBuyin = 0, rCashout = 0, rMins = 0;
       recent15.forEach(t => {
         rBuyin += (t.buyin || 0);
         rCashout += (t.cashout || 0);
         rMins += (t.totalMinutes || 0);
-        if (t.hands) rHands += t.hands.length;
       });
 
       const rProfit = rCashout - rBuyin;
@@ -1135,22 +1115,19 @@
 
       const rHours = rMins > 0 ? (rMins / 60) : 1;
       const hourly = Math.round(rProfit / rHours);
-      document.getElementById('kpi-hourly-rate').textContent = `${hourly >= 0 ? '+' : ''}${hourly.toLocaleString()} NTD[cite: 7]`;
+      document.getElementById('kpi-hourly-rate').textContent = `${hourly >= 0 ? '+' : ''}${hourly.toLocaleString()} NTD`;
       const roi = rBuyin > 0 ? ((rProfit / rBuyin) * 100).toFixed(1) : 0;
-      document.getElementById('kpi-roi').textContent = `${roi >= 0 ? '+' : ''}${roi}%[cite: 7]`;
+      document.getElementById('kpi-roi').textContent = `${roi >= 0 ? '+' : ''}${roi}%`;
 
-      // 賽季挑戰進度條 (目標 100,000 NTD)
       const totalNet = careerTournaments.reduce((acc, t) => acc + (t.netProfit !== undefined ? t.netProfit : ((t.cashout || 0) - (t.buyin || 0))), 0);
       const target = 100000;
       const pct = Math.max(0, Math.min(100, Math.round((totalNet / target) * 100)));
-      document.getElementById('goal-progress-percent').textContent = `${pct}%[cite: 8]`;
-      document.getElementById('goal-progress-detail').textContent = `${totalNet.toLocaleString()} / 100,000 NTD[cite: 8]`;
+      document.getElementById('goal-progress-percent').textContent = `${pct}%`;
+      document.getElementById('goal-progress-detail').textContent = `${totalNet.toLocaleString()} / 100,000 NTD`;
       document.getElementById('goal-progress-bar').style.width = `${pct}%`;
 
-      // 近期行為標籤引擎[cite: 7, 8]
       computeBehaviorTags();
 
-      // 最近場次預覽
       const previewEl = document.getElementById('dash-recent-list');
       if (recent15.length === 0) {
         previewEl.innerHTML = '<div class="text-slate-600 py-4 text-center italic">尚未有已結算的錦標賽資料。</div>';
@@ -1172,7 +1149,6 @@
     }
 
     function computeBehaviorTags() {
-      // 聚合所有手牌歷史
       let totalHands = 0;
       let vpipHands = 0;
       let threeBetHands = 0;
@@ -1196,11 +1172,11 @@
 
       const vpipTag = document.getElementById('tag-vpip-val');
       if (vpipRate > 32) { vpipTag.textContent = '偏高 (Loose)'; vpipTag.className = 'text-rose-400 font-bold text-xs'; }
-      else if (vpipRate < 18) { vpipTag.textContent = '偏低 (Tight)[cite: 7, 8]'; vpipTag.className = 'text-cyan-400 font-bold text-xs'; }
+      else if (vpipRate < 18) { vpipTag.textContent = '偏低 (Tight)'; vpipTag.className = 'text-cyan-400 font-bold text-xs'; }
       else { vpipTag.textContent = '健康 (20-30%)'; vpipTag.className = 'text-emerald-400 font-bold text-xs'; }
 
       const tbTag = document.getElementById('tag-3b-val');
-      if (threeBetRate > 12) { tbTag.textContent = '3bet 偏多 ↗[cite: 7, 8]'; tbTag.className = 'text-rose-400 font-bold text-xs'; }
+      if (threeBetRate > 12) { tbTag.textContent = '3bet 偏多 ↗'; tbTag.className = 'text-rose-400 font-bold text-xs'; }
       else if (threeBetRate < 5) { tbTag.textContent = '3bet 偏少 ↘'; tbTag.className = 'text-cyan-400 font-bold text-xs'; }
       else { tbTag.textContent = '標準 (7-10%)'; tbTag.className = 'text-emerald-400 font-bold text-xs'; }
 
@@ -1210,7 +1186,7 @@
       else { rebuyTag.textContent = '健康 (控制良好)'; rebuyTag.className = 'text-emerald-400 font-bold text-xs'; }
     }
 
-    // --- TAB 2: Web Speech API 語音聽寫打點 (截圖 7 功能)[cite: 13] ---
+    // --- TAB 2: Web Speech 語音輸入 ---
     function initSpeechRecognition() {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) return;
@@ -1220,7 +1196,7 @@
       speechRecognitionInstance.interimResults = false;
 
       speechRecognitionInstance.onstart = () => {
-        document.getElementById('speech-btn-text').textContent = '正在聆聽...[cite: 13]';
+        document.getElementById('speech-btn-text').textContent = '正在聆聽...';
         document.getElementById('speech-dot').className = 'w-2 h-2 rounded-full bg-emerald-400 animate-ping';
       };
 
@@ -1240,7 +1216,7 @@
     }
 
     function resetSpeechBtn() {
-      document.getElementById('speech-btn-text').textContent = '🎙️ 開口說，自動整理[cite: 13]';
+      document.getElementById('speech-btn-text').textContent = '🎙️ 語音辨識輸入';
       document.getElementById('speech-dot').className = 'w-2 h-2 rounded-full bg-rose-500';
     }
 
@@ -1250,7 +1226,7 @@
         return;
       }
       if (!speechRecognitionInstance) {
-        showToast('您的瀏覽器不支援 Web Speech 語音輸入，建議使用 Chrome 或 Safari[cite: 14]！', 'warn');
+        showToast('您的瀏覽器不支援 Web Speech 語音輸入', 'warn');
         return;
       }
       try {
@@ -1260,19 +1236,16 @@
       }
     }
 
-    // 語音語義解析器 (自動解析手牌、位置、碼量)[cite: 13]
     function parseSpeechAndFillForm(text) {
-      showToast(`聽到：「${text}」[cite: 13]`, 'info');
+      showToast(`聽到：「${text}」`, 'info');
       document.getElementById('staged-notes').value = text;
 
-      // 1. 抓取手牌
       const upper = text.toUpperCase();
       let matchedHand = null;
       for (let h of MATRIX_LABELS) {
         if (upper.includes(h)) { matchedHand = h; break; }
       }
       if (!matchedHand) {
-        // 嘗試拼音抓取 (如 "AK 同花", "對8", "A同花5")
         if (text.includes('AK') && (text.includes('同花') || text.includes('紅心') || text.includes('黑桃'))) matchedHand = 'AKs';
         else if (text.includes('AK')) matchedHand = 'AKo';
         else if (text.includes('對8') || text.includes('88') || text.includes('八八')) matchedHand = '88';
@@ -1280,7 +1253,6 @@
       }
       if (matchedHand) setStagedHand(matchedHand);
 
-      // 2. 抓取位置
       for (let p of FULL_10MAX_POSITIONS) {
         if (upper.includes(p)) { setStagedPos(p); break; }
       }
@@ -1289,7 +1261,6 @@
       else if (text.includes('小盲')) setStagedPos('SB');
       else if (text.includes('槍口')) setStagedPos('UTG');
 
-      // 3. 抓取碼量數字 (如 "剩四萬五", "碼量 45000")
       const numMatch = text.match(/\d+/);
       if (numMatch) {
         const stackVal = parseInt(numMatch[0]);
@@ -1300,7 +1271,7 @@
       }
     }
 
-    // --- 動態桌況位置 ---
+    // --- 動態桌況 ---
     function onTableSizeChanged(size) {
       currentTableSize = size;
       localStorage.setItem('poker_system_table_size', size);
@@ -1351,7 +1322,7 @@
 
     function setStagedPos(pos) {
       currentStagedPos = pos;
-      document.querySelectorAll('.staged-pos-btn, #dynamic-pos-container button').forEach(btn => {
+      document.querySelectorAll('#dynamic-pos-container button').forEach(btn => {
         if (!btn.disabled && btn.dataset.pos) {
           if (btn.dataset.pos === pos) btn.className = 'py-1 rounded bg-amber-600 border border-amber-500 text-white font-bold shadow';
           else btn.className = 'py-1 rounded bg-slate-950 border border-slate-800 text-slate-400 hover:bg-slate-900';
@@ -1480,8 +1451,8 @@
         html += `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-950/80 border border-amber-500/50 text-amber-300 font-mono text-[11px] font-bold shadow-sm">
           <span>#${idx + 1} ${item.hand}</span>
           <span class="text-[9px] text-amber-500 font-normal">(${item.time})</span>
-          <button onclick="popQueueItemToActive('${item.id}')" title="帶入編輯" class="text-emerald-400 hover:text-emerald-300 ml-1 font-bold">▲</button>
-          <button onclick="removeQueueItem('${item.id}')" title="刪除" class="text-rose-400 hover:text-rose-300 font-bold">✕</button>
+          <button onclick="popQueueItemToActive('${item.id}')" title="帶入編輯" class="text-emerald-400 hover:text-emerald-300 ml-1 font-bold cursor-pointer">▲</button>
+          <button onclick="removeQueueItem('${item.id}')" title="刪除" class="text-rose-400 hover:text-rose-300 font-bold cursor-pointer">✕</button>
         </span>`;
       });
       container.innerHTML = html;
@@ -1905,22 +1876,7 @@
       if (isAutoSyncEnabled) triggerAutoSyncIfEnabled();
     }
 
-    function recalculateHandStats() {
-      if (!activeTourney) return;
-      const stats = {};
-      activeTourney.hands.forEach(h => {
-        if (!h.type || h.type === 'hand') {
-          if (!stats[h.hand]) stats[h.hand] = { total: 0, fold: 0, loss: 0, win: 0 };
-          stats[h.hand].total++;
-          if (h.outcome === 'win') stats[h.hand].win++;
-          else if (h.outcome === 'loss') stats[h.hand].loss++;
-          else stats[h.hand].fold++;
-        }
-      });
-      activeTourney.handStats = stats;
-    }
-
-    // --- TAB 3: 賽後覆盤與歷程回放 (History & Review)[cite: 11] ---
+    // --- TAB 3: 賽後覆盤與歷程回放 ---
     function openTourneyDetailModal(tourneyId) {
       const tourney = careerTournaments.find(t => t.id === tourneyId);
       if (!tourney) return;
@@ -1997,7 +1953,6 @@
       if (isAutoSyncEnabled) triggerAutoSyncIfEnabled();
     }
 
-    // --- 載回編輯且不刪除原賽事 ---
     function loadTourneyToLiveWorkspaceById(tourneyId) {
       const tourney = careerTournaments.find(t => t.id === tourneyId);
       if (!tourney) return;
@@ -2016,7 +1971,6 @@
       showToast(`已成功載回「${tourney.name}」！結算時可覆蓋原檔案。`, 'success');
     }
 
-    // --- 手動快速補登賽事 ---
     function openQuickManualEntryModal() {
       document.getElementById('modal-quick-entry').classList.remove('hidden');
       initDefaultDateTime();
@@ -2070,7 +2024,7 @@
       showToast(`已補登「${nameVal}」！`, 'success');
     }
 
-    // --- TAB 4: 深度手牌與 GTO 庫 (Ranges & Analytics) ---
+    // --- TAB 4: 深度手牌與 GTO 庫 ---
     function calculateGlobalHandAnalytics() {
       const allHands = [];
       careerTournaments.forEach(t => {
@@ -2173,7 +2127,6 @@
       bb100El.className = `text-sm font-bold font-mono ${netBB >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
       document.getElementById('selected-hand-kpi').textContent = `${bb100 >= 0 ? '+' : ''}${bb100} BB/100`;
 
-      // GTO 偏離比對
       const gtoRFI = GTO_BENCHMARK_RFI[handLabel] || 0;
       const devEl = document.getElementById('gto-deviation-text');
       if (data.total < 3) {
@@ -2212,7 +2165,7 @@
       listContainer.innerHTML = html;
     }
 
-    // --- 雙軸折線圖 (大盲變化 BB & 碼量變化 Stack)[cite: 9] ---
+    // --- 雙軸折線圖 ---
     function renderDualAxisChart() {
       const svg = document.getElementById('live-dual-chart');
       const placeholder = document.getElementById('chart-empty-placeholder');
@@ -2299,18 +2252,18 @@
       if (tooltip) tooltip.classList.add('hidden');
     }
 
-    // --- 實戰 HUD 與矩陣 ---
+    // --- 實戰 HUD 與矩陣渲染 ---
     function renderUI() {
       const boxSetup = document.getElementById('box-start-tournament');
       const boxLive = document.getElementById('box-live-workspace');
 
       if (!activeTourney || activeTourney.status !== 'active') {
-        boxSetup.classList.remove('hidden');
-        boxLive.classList.add('hidden');
+        if (boxSetup) boxSetup.classList.remove('hidden');
+        if (boxLive) boxLive.classList.add('hidden');
         renderHeatmap();
       } else {
-        boxSetup.classList.add('hidden');
-        boxLive.classList.remove('hidden');
+        if (boxSetup) boxSetup.classList.add('hidden');
+        if (boxLive) boxLive.classList.remove('hidden');
 
         document.getElementById('hud-tourney-name').textContent = activeTourney.name;
         document.getElementById('hud-type-badge').textContent = activeTourney.type;
@@ -2431,44 +2384,60 @@
       container.innerHTML = html;
     }
 
+    // --- 關鍵修正：開始記錄賽事 (加入完整防呆與錯誤攔截) ---
     function startNewTournamentSession() {
-      const name = document.getElementById('init-tourney-name').value.trim() || '未命名錦標賽';
-      const type = document.getElementById('init-tourney-type').value;
-      const buyin = parseFloat(document.getElementById('init-buyin').value) || 0;
-      const startTime = document.getElementById('init-start-time').value || new Date().toISOString();
-      const startStack = parseFloat(document.getElementById('init-start-stack').value) || 30000;
-      const startBB = parseFloat(document.getElementById('init-start-bb').value) || 200;
-      const totalEntries = Math.max(0, parseInt(document.getElementById('init-total-entries').value) || 0);
-      const prizePool = parseFloat(document.getElementById('init-prize-pool').value) || null;
+      try {
+        const nameEl = document.getElementById('init-tourney-name');
+        const typeEl = document.getElementById('init-tourney-type');
+        const buyinEl = document.getElementById('init-buyin');
+        const startTimeEl = document.getElementById('init-start-time');
+        const startStackEl = document.getElementById('init-start-stack');
+        const startBBEl = document.getElementById('init-start-bb');
+        const entriesEl = document.getElementById('init-total-entries');
+        const prizePoolEl = document.getElementById('init-prize-pool');
 
-      activeTourney = {
-        id: 't_' + Date.now(),
-        name: name,
-        type: type,
-        buyin: buyin,
-        rebuyCount: 0,
-        prizePool: prizePool,
-        startTime: startTime,
-        startStack: startStack,
-        startBB: startBB,
-        currentStack: startStack,
-        currentBB: startBB,
-        totalEntries: totalEntries,
-        playersLeft: totalEntries || 0,
-        avgStack: startStack,
-        avgBB: (startStack / startBB).toFixed(1),
-        hands: [],
-        handStats: {},
-        status: 'active'
-      };
+        const name = (nameEl && nameEl.value.trim()) ? nameEl.value.trim() : '未命名錦標賽';
+        const type = (typeEl && typeEl.value) ? typeEl.value : '錦標賽 (MTT)';
+        const buyin = (buyinEl && !isNaN(parseFloat(buyinEl.value))) ? parseFloat(buyinEl.value) : 10000;
+        const startTime = (startTimeEl && startTimeEl.value) ? startTimeEl.value : new Date().toISOString();
+        const startStack = (startStackEl && !isNaN(parseFloat(startStackEl.value)) && parseFloat(startStackEl.value) > 0) ? parseFloat(startStackEl.value) : 30000;
+        const startBB = (startBBEl && !isNaN(parseFloat(startBBEl.value)) && parseFloat(startBBEl.value) > 0) ? parseFloat(startBBEl.value) : 200;
+        const totalEntries = (entriesEl && !isNaN(parseInt(entriesEl.value))) ? Math.max(0, parseInt(entriesEl.value)) : 0;
+        const prizePool = (prizePoolEl && !isNaN(parseFloat(prizePoolEl.value))) ? parseFloat(prizePoolEl.value) : null;
 
-      editingOriginTourneyId = null;
-      calculateAndSetAverageStack();
-      waitingHandQueue = [];
-      clearCurrentStagingForm();
-      saveStorageData();
-      renderUI();
-      if (isAutoSyncEnabled) triggerAutoSyncIfEnabled();
+        activeTourney = {
+          id: 't_' + Date.now(),
+          name: name,
+          type: type,
+          buyin: buyin,
+          rebuyCount: 0,
+          prizePool: prizePool,
+          startTime: startTime,
+          startStack: startStack,
+          startBB: startBB,
+          currentStack: startStack,
+          currentBB: startBB,
+          totalEntries: totalEntries,
+          playersLeft: totalEntries || 0,
+          avgStack: startStack,
+          avgBB: (startStack / startBB).toFixed(1),
+          hands: [],
+          handStats: {},
+          status: 'active'
+        };
+
+        editingOriginTourneyId = null;
+        calculateAndSetAverageStack();
+        waitingHandQueue = [];
+        clearCurrentStagingForm();
+        saveStorageData();
+        renderUI();
+        if (isAutoSyncEnabled) triggerAutoSyncIfEnabled();
+        showToast(`已成功開始「${name}」！`, 'success');
+      } catch (err) {
+        console.error('startNewTournamentSession failed:', err);
+        showToast('啟動賽事失敗: ' + err.message, 'error');
+      }
     }
 
     function openFinishModal() {
@@ -2545,8 +2514,8 @@
               <div class="text-xs text-slate-400">買入 $${(t.buyin || 0).toLocaleString()} ➔ $${(t.cashout || 0).toLocaleString()}</div>
               <div class="font-bold text-xs ${pClass}">淨利: ${pNet >= 0 ? '+$' : '-$'}${Math.abs(pNet).toLocaleString()}</div>
             </div>
-            <button onclick="openTourneyDetailModal('${t.id}')" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 rounded-lg text-xs transition">詳情[cite: 11]</button>
-            <button onclick="loadTourneyToLiveWorkspaceById('${t.id}')" class="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition">📥 載回編輯</button>
+            <button onclick="openTourneyDetailModal('${t.id}')" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 rounded-lg text-xs transition cursor-pointer">詳情</button>
+            <button onclick="loadTourneyToLiveWorkspaceById('${t.id}')" class="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition cursor-pointer">📥 載回編輯</button>
           </div>
         </div>`;
       });
