@@ -215,7 +215,7 @@
     <!-- ============================================== -->
     <div id="view-live" class="hidden flex flex-col gap-3">
       
-      <!-- 快捷手動切換工具列 (滿足你的手動切換需求) -->
+      <!-- 快捷手動切換工具列 -->
       <div class="flex justify-between items-center bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl text-xs">
         <span class="text-slate-400 flex items-center gap-1.5">
           <span>🕹️</span> 實戰工作區模式切換:
@@ -890,27 +890,51 @@
     </div>
   </div>
 
-  <!-- MODAL: 雲端設定 -->
+  <!-- MODAL: 雲端設定與本機暫存管理 -->
   <div id="modal-settings" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-4">
     <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-lg w-full p-4 sm:p-5 shadow-2xl flex flex-col gap-3.5 max-h-[90vh] overflow-y-auto text-xs">
       <div class="flex justify-between items-center border-b border-slate-800 pb-2">
-        <h3 class="font-bold text-sm sm:text-base text-amber-300 flex items-center gap-1.5"><span>⚙️</span> 雲端資料庫連線設定 (Firebase)</h3>
+        <h3 class="font-bold text-sm sm:text-base text-amber-300 flex items-center gap-1.5"><span>⚙️</span> 系統設定與雲端連線 (Firebase)</h3>
         <button onclick="closeSettingsModal()" class="text-slate-400 hover:text-white font-bold p-1">✕</button>
       </div>
+
+      <!-- 功能 2: 自動讀取雲端設定 -->
+      <div class="bg-slate-950 p-2.5 rounded-xl border border-slate-800 flex flex-col gap-2">
+        <div class="font-bold text-cyan-300 text-xs">☁️ 雲端同步策略選項</div>
+        <label class="flex items-center gap-2 cursor-pointer select-none">
+          <input type="checkbox" id="cfg-auto-download-on-load" class="w-4 h-4 accent-cyan-500 rounded cursor-pointer">
+          <span class="text-slate-200 font-medium">進入網頁時自動讀取並覆蓋雲端資料 (Auto-Download on Load)</span>
+        </label>
+        <p class="text-[10px] text-slate-500">若未勾選，每次進入頁面時將優先顯示本機暫存，並於右下角跳出 Toast 提醒。</p>
+
+        <label class="flex items-center gap-2 cursor-pointer select-none border-t border-slate-800/80 pt-2">
+          <input type="checkbox" id="cfg-auto-sync" class="w-4 h-4 accent-amber-500 rounded cursor-pointer">
+          <span class="text-slate-200 font-medium">打點與結算時自動在背景上傳雲端 (Auto-Sync)</span>
+        </label>
+      </div>
+
       <div class="flex flex-col gap-1">
         <label class="font-semibold text-slate-300 text-[11px]">Firebase Config (JSON)</label>
-        <textarea id="cfg-firebase-json" rows="5" class="w-full bg-slate-950 border border-slate-700 rounded p-2 font-mono text-[10px] text-cyan-300 focus:outline-none"></textarea>
+        <textarea id="cfg-firebase-json" rows="4" class="w-full bg-slate-950 border border-slate-700 rounded p-2 font-mono text-[10px] text-cyan-300 focus:outline-none"></textarea>
       </div>
       <div class="flex flex-col gap-1">
         <label class="font-semibold text-slate-300 text-[11px]">同步房間代碼 (Sync Room Code)</label>
         <input type="text" id="cfg-room-code" placeholder="如: my_tourney_career" class="w-full bg-slate-950 border border-slate-700 rounded p-2 text-amber-300 font-mono font-bold focus:outline-none">
       </div>
-      <label class="flex items-center gap-2 cursor-pointer bg-slate-950 p-2 rounded-xl border border-slate-800 select-none">
-        <input type="checkbox" id="cfg-auto-sync" class="w-4 h-4 accent-amber-500 rounded cursor-pointer">
-        <span class="text-slate-300 font-medium text-[11px]">打點與結算時自動在背景上傳雲端 (Auto-Sync)</span>
-      </label>
+
+      <!-- 功能 1: 刪除所有 Local 暫存 -->
+      <div class="bg-rose-950/20 border border-rose-900/50 p-3 rounded-xl flex items-center justify-between gap-2">
+        <div>
+          <div class="font-bold text-rose-300 text-xs">⚠️ 清空本機所有暫存資料</div>
+          <div class="text-[10px] text-slate-400">刪除瀏覽器中的當前賽事、所有歷史檔案庫與暫存佇列（不影響雲端資料庫）。</div>
+        </div>
+        <button onclick="clearAllLocalStorageData()" class="px-3 py-1.5 bg-rose-900/80 hover:bg-rose-800 border border-rose-700 text-rose-200 font-bold rounded-xl text-xs whitespace-nowrap transition">
+          🗑️ 清空本機
+        </button>
+      </div>
+
       <div class="grid grid-cols-2 gap-2 pt-1 border-t border-slate-800">
-        <button onclick="saveAndInitFirebase()" class="py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition">💾 儲存並連線</button>
+        <button onclick="saveAndInitFirebase()" class="py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl transition">💾 儲存設定並連線</button>
         <button onclick="closeSettingsModal()" class="py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl transition">關閉</button>
       </div>
     </div>
@@ -996,7 +1020,7 @@
         toast.style.opacity = '0';
         toast.style.transform = 'translateY(10px)';
         setTimeout(() => toast.remove(), 320);
-      }, 3000);
+      }, 3500);
     }
 
     function sanitizeNonNegative(inputEl, minVal = 0) {
@@ -1005,18 +1029,47 @@
       if (isNaN(val) || val < minVal) inputEl.value = minVal;
     }
 
+    // --- 功能 1: 刪除所有 Local 暫存 ---
+    function clearAllLocalStorageData() {
+      if (!confirm('⚠️ 確定要刪除此瀏覽器上的所有本機暫存資料嗎？
+
+這將清空所有進行中賽事、歷史牌局檔案與暫存佇列（不會刪除 Firebase 雲端資料庫）。')) {
+        return;
+      }
+      localStorage.removeItem('poker_system_active');
+      localStorage.removeItem('poker_system_history');
+      localStorage.removeItem('poker_system_queue');
+      localStorage.removeItem('poker_career_active');
+      localStorage.removeItem('poker_career_history');
+      localStorage.removeItem('poker_career_waiting_queue');
+
+      activeTourney = null;
+      editingOriginTourneyId = null;
+      careerTournaments = [];
+      waitingHandQueue = [];
+
+      closeSettingsModal();
+      renderUI();
+      renderDashboard();
+      renderCareerSummary();
+      renderWaitingQueue();
+      showToast('已成功清除所有本機暫存！', 'success');
+    }
+
     // --- INITIALIZATION ---
     window.addEventListener('DOMContentLoaded', () => {
       initMatrixDOM('poker-matrix', onMatrixCellClicked);
       initMatrixDOM('analytics-matrix', onAnalyticsCellClicked);
       loadStorageData();
       initDefaultDateTime();
-      initFirebaseAuto();
       renderDynamicPositionButtons();
       renderDashboard();
       renderUI();
       renderWaitingQueue();
       initSpeechRecognition();
+
+      // 初始化 Firebase 與自動下載邏輯
+      initFirebaseAuto();
 
       window.addEventListener('beforeunload', (e) => {
         if (activeTourney && activeTourney.status === 'active') {
@@ -1076,7 +1129,6 @@
       }
     }
 
-    // --- 手動切換工作區視圖 (滿足你的手動按鈕需求) ---
     function toggleLiveViewModeManual() {
       const boxSetup = document.getElementById('box-start-tournament');
       const boxLive = document.getElementById('box-live-workspace');
@@ -1084,25 +1136,24 @@
 
       const isLiveVisible = !boxLive.classList.contains('hidden');
       if (isLiveVisible) {
-        // 切換至建立表單
         boxLive.classList.add('hidden');
         boxSetup.classList.remove('hidden');
-        document.getElementById('current-view-mode-label').textContent = '建立新賽事表單';
-        showToast('已手動切換至【建立新賽事表單】', 'info');
+        const lbl = document.getElementById('current-view-mode-label');
+        if (lbl) lbl.textContent = '建立新賽事表單';
+        showToast('已切換至【建立新賽事表單】', 'info');
       } else {
-        // 切換至實戰打點區 (若無進行中賽事給予提示)
         if (!activeTourney) {
-          showToast('目前無進行中賽事，建議先填寫下方表單點擊開始！', 'warn');
+          showToast('目前無進行中賽事，建議先填寫表單點擊開始！', 'warn');
         }
         boxSetup.classList.add('hidden');
         boxLive.classList.remove('hidden');
-        document.getElementById('current-view-mode-label').textContent = '實戰打點儀表板';
+        const lbl = document.getElementById('current-view-mode-label');
+        if (lbl) lbl.textContent = '實戰打點儀表板';
         renderDualAxisChart();
-        showToast('已手動切換至【實戰打點儀表板】', 'info');
+        showToast('已切換至【實戰打點儀表板】', 'info');
       }
     }
 
-    // --- TAB 導覽切換 ---
     function switchMainTab(tab) {
       const tabs = ['dashboard', 'live', 'review', 'analytics'];
       tabs.forEach(t => {
@@ -1125,7 +1176,6 @@
       else if (tab === 'analytics') renderAnalyticsHeatmap();
     }
 
-    // --- TAB 1: 總覽儀表板 ---
     function renderDashboard() {
       const hour = new Date().getHours();
       let greeting = '你好，撲克手！';
@@ -1239,7 +1289,6 @@
       }
     }
 
-    // --- TAB 2: Web Speech 語音輸入 ---
     function initSpeechRecognition() {
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       if (!SpeechRecognition) return;
@@ -1330,7 +1379,6 @@
       }
     }
 
-    // --- 動態桌況 ---
     function onTableSizeChanged(size) {
       currentTableSize = size;
       localStorage.setItem('poker_system_table_size', size);
@@ -1519,8 +1567,8 @@
         html += `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-950/80 border border-amber-500/50 text-amber-300 font-mono text-[11px] font-bold shadow-sm">
           <span>#${idx + 1} ${item.hand}</span>
           <span class="text-[9px] text-amber-500 font-normal">(${item.time})</span>
-          <button onclick="popQueueItemToActive('${item.id}')" title="帶入編輯" class="text-emerald-400 hover:text-emerald-300 ml-1 font-bold">▲</button>
-          <button onclick="removeQueueItem('${item.id}')" title="刪除" class="text-rose-400 hover:text-rose-300 font-bold">✕</button>
+          <button onclick="popQueueItemToActive('${item.id}')" title="帶入編輯" class="text-emerald-400 hover:text-emerald-300 ml-1 font-bold cursor-pointer">▲</button>
+          <button onclick="removeQueueItem('${item.id}')" title="刪除" class="text-rose-400 hover:text-rose-300 font-bold cursor-pointer">✕</button>
         </span>`;
       });
       container.innerHTML = html;
@@ -2061,7 +2109,9 @@
       if (!tourney) return;
 
       if (activeTourney && activeTourney.status === 'active') {
-        if (!confirm(`目前已有進行中的賽事「${activeTourney.name}」！\n\n載入「${tourney.name}」將會覆蓋當前工作區，確定要載入嗎？`)) return;
+        if (!confirm(`目前已有進行中的賽事「${activeTourney.name}」！
+
+載入「${tourney.name}」將會覆蓋當前工作區，確定要載入嗎？`)) return;
       }
 
       activeTourney = JSON.parse(JSON.stringify(tourney));
@@ -2546,7 +2596,6 @@
       if (container) container.innerHTML = html;
     }
 
-    // --- 開始記錄賽事 (帶有強大除錯與安全回退) ---
     function startNewTournamentSession() {
       try {
         const nameEl = document.getElementById('init-tourney-name');
@@ -2732,6 +2781,8 @@
       if (rmEl) rmEl.value = localStorage.getItem('poker_system_fb_room') || 'my_tourney_career';
       const syncEl = document.getElementById('cfg-auto-sync');
       if (syncEl) syncEl.checked = localStorage.getItem('poker_system_fb_autosync') !== '0';
+      const autoDlEl = document.getElementById('cfg-auto-download-on-load');
+      if (autoDlEl) autoDlEl.checked = localStorage.getItem('poker_system_auto_download_load') === '1';
     }
 
     function closeSettingsModal() {
@@ -2742,25 +2793,32 @@
       const rawCfg = document.getElementById('cfg-firebase-json')?.value.trim();
       const room = document.getElementById('cfg-room-code')?.value.trim() || 'my_tourney_career';
       const autoSync = document.getElementById('cfg-auto-sync')?.checked;
+      const autoDl = document.getElementById('cfg-auto-download-on-load')?.checked;
+
       let parsed;
       try { parsed = JSON.parse(rawCfg); } catch (e) { showToast('JSON 格式錯誤！', 'error'); return; }
 
       localStorage.setItem('poker_system_fb_cfg', JSON.stringify(parsed, null, 2));
       localStorage.setItem('poker_system_fb_room', room);
       localStorage.setItem('poker_system_fb_autosync', autoSync ? '1' : '0');
+      localStorage.setItem('poker_system_auto_download_load', autoDl ? '1' : '0');
+
       isAutoSyncEnabled = autoSync;
-      initFirebase(parsed, room);
+      initFirebase(parsed, room, false);
       closeSettingsModal();
+      showToast('設定已儲存！', 'success');
     }
 
     function initFirebaseAuto() {
       const savedCfg = localStorage.getItem('poker_system_fb_cfg');
       const room = localStorage.getItem('poker_system_fb_room') || 'my_tourney_career';
       const cfg = savedCfg ? JSON.parse(savedCfg) : DEFAULT_FB_CONFIG;
-      initFirebase(cfg, room);
+      const autoDl = localStorage.getItem('poker_system_auto_download_load') === '1';
+
+      initFirebase(cfg, room, autoDl);
     }
 
-    function initFirebase(cfg, room) {
+    function initFirebase(cfg, room, shouldAutoDownload) {
       try {
         if (!firebase.apps.length) firebase.initializeApp(cfg);
         firestoreDB = firebase.firestore();
@@ -2769,17 +2827,47 @@
         if (led) led.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse';
         const txt = document.getElementById('cloud-status-text');
         if (txt) txt.textContent = `已連通 (${room})`;
+
         firestoreDB.collection('tournament_careers').doc(room).onSnapshot(doc => {
           if (doc.exists) {
             const statusTxt = document.getElementById('cloud-status-text');
             if (statusTxt) statusTxt.textContent = `雲端最新 (${doc.data().updatedAt || '已同步'})`;
           }
         });
+
+        // 功能 2: 判斷是否自動讀取雲端資料
+        if (shouldAutoDownload) {
+          silentDownloadFromCloud(room);
+        } else {
+          // 沒開自動讀取時，在進入頁面後跳出 toast 提醒
+          setTimeout(() => {
+            showToast('💡 目前未開啟「自動讀取雲端」，本地顯示為離線暫存。如需拉取最新進度請至設定開啟或點擊覆蓋同步。', 'info');
+          }, 1200);
+        }
       } catch (err) {
         const led = document.getElementById('cloud-led');
         if (led) led.className = 'w-2 h-2 rounded-full bg-slate-500';
         const txt = document.getElementById('cloud-status-text');
         if (txt) txt.textContent = '未連線';
+      }
+    }
+
+    async function silentDownloadFromCloud(room) {
+      if (!firestoreDB) return;
+      try {
+        const doc = await firestoreDB.collection('tournament_careers').doc(room).get();
+        if (doc.exists) {
+          const data = doc.data();
+          activeTourney = data.activeTourney || null;
+          careerTournaments = data.careerTournaments || [];
+          waitingHandQueue = data.waitingHandQueue || [];
+          saveStorageData();
+          renderUI();
+          renderDashboard();
+          showToast(`☁️ 已自動同步最新雲端進度 (${data.updatedAt || '最新'})`, 'success');
+        }
+      } catch (e) {
+        console.warn('Silent download failed', e);
       }
     }
 
