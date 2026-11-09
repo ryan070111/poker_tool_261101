@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>德州撲克大數據與決策管理套件 - 首頁導航</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans">
+  <header class="bg-slate-900 border-b border-slate-800 px-6 py-4 flex items-center justify-between">
+    <div class="flex items-center gap-3">
+      <span class="text-3xl">♠️</span>
+      <div>
+        <h1 class="text-lg font-bold text-white tracking-wide">德州撲克專業套件入口</h1>
+        <p class="text-xs text-slate-400">模組化系統入口 / 快速分頁跳轉 / 資料庫集中管理</p>
+      </div>
+    </div>
+    <span class="text-xs font-mono text-cyan-400 bg-slate-950 border border-slate-800 px-3 py-1 rounded-full">Suite Hub v2.0</span>
+  </header>
+
+  <main class="flex-1 max-w-5xl w-full mx-auto p-4 sm:p-8 flex flex-col gap-6">
+    <div class="border-b border-slate-800 pb-4">
+      <h2 class="text-base font-bold text-amber-300">📌 核心系統分頁</h2>
+      <p class="text-xs text-slate-400 mt-1">點擊直接啟動對應功能頁面：</p>
+    </div>
+
+    <!-- 核心分頁卡片 -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <!-- Card 1 -->
+      <a href="poker_tournament_system.html" class="bg-slate-900 border border-slate-800 hover:border-blue-500 rounded-2xl p-5 transition shadow-lg flex flex-col justify-between group">
+        <div>
+          <div class="text-2xl mb-2">🏆</div>
+          <h3 class="font-bold text-white text-sm group-hover:text-blue-400 transition">錦標賽專業戰情系統</h3>
+          <p class="text-xs text-slate-400 mt-2 leading-relaxed">支援即時盲注籌碼雙軸貝茲折線圖、手牌熱度圖、實戰打點與快速記帳。</p>
+        </div>
+        <div class="mt-4 pt-3 border-t border-slate-800/80 flex justify-between items-center text-xs text-blue-400 font-mono font-medium">
+          <span>開啟系統 ➔</span>
+          <span class="text-[10px] text-slate-500">poker_tournament_system.html</span>
+        </div>
+      </a>
+
+      <!-- Card 2 -->
+      <a href="poker_tournament_career.html" class="bg-slate-900 border border-slate-800 hover:border-emerald-500 rounded-2xl p-5 transition shadow-lg flex flex-col justify-between group">
+        <div>
+          <div class="text-2xl mb-2">📈</div>
+          <h3 class="font-bold text-white text-sm group-hover:text-emerald-400 transition">賽事生涯檔案庫 (Career)</h3>
+          <p class="text-xs text-slate-400 mt-2 leading-relaxed">跨場次累積投報率 (ROI)、均碼歷程、時薪計算與逐手詳細歷程覆盤回放。</p>
+        </div>
+        <div class="mt-4 pt-3 border-t border-slate-800/80 flex justify-between items-center text-xs text-emerald-400 font-mono font-medium">
+          <span>開啟檔案庫 ➔</span>
+          <span class="text-[10px] text-slate-500">poker_tournament_career.html</span>
+        </div>
+      </a>
+
+      <!-- Card 3 -->
+      <a href="poker_range_lab_v12.html" class="bg-slate-900 border border-slate-800 hover:border-purple-500 rounded-2xl p-5 transition shadow-lg flex flex-col justify-between group">
+        <div>
+          <div class="text-2xl mb-2">🧪</div>
+          <h3 class="font-bold text-white text-sm group-hover:text-purple-400 transition">手牌範圍實驗室 (Range Lab)</h3>
+          <p class="text-xs text-slate-400 mt-2 leading-relaxed">13×13 自由塗抹、GTO 深度開牌庫比對、雙範圍交集與暗牌決策特訓。</p>
+        </div>
+        <div class="mt-4 pt-3 border-t border-slate-800/80 flex justify-between items-center text-xs text-purple-400 font-mono font-medium">
+          <span>開啟實驗室 ➔</span>
+          <span class="text-[10px] text-slate-500">poker_range_lab_v12.html</span>
+        </div>
+      </a>
+    </div>
+
+    <!-- 資料夾 HTML 自動探索列表 -->
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl flex flex-col gap-3 mt-4">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+        <h3 class="font-bold text-xs text-slate-300 flex items-center gap-2">
+          <span>📂</span> 目前目錄下的 HTML 檔案
+        </h3>
+        <button onclick="scanHtmlFiles()" class="text-xs text-cyan-400 hover:underline">重新整理</button>
+      </div>
+      <div id="file-list-container" class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-mono">
+        <!-- 動態偵測結果 -->
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // 預設常見檔案清單 (伺服器不支援列出目錄時的安全後備方案)
+    const KNOWN_HTML_FILES = [
+      { name: 'poker_tournament_system.html', desc: '專業戰情與大數據管理系統' },
+      { name: 'poker_tournament_career.html', desc: '錦標賽生涯戰報與回放庫' },
+      { name: 'poker_range_lab_v12.html', desc: '手牌範圍實驗室 v12' },
+      { name: 'poker_range_lab_v13.html', desc: '手牌範圍實驗室 v13 (最新版)' }
+    ];
+
+    async function scanHtmlFiles() {
+      const container = document.getElementById('file-list-container');
+      container.innerHTML = '';
+
+      for (const item of KNOWN_HTML_FILES) {
+        let isAvailable = true;
+        try {
+          const resp = await fetch(item.name, { method: 'HEAD' });
+          if (!resp.ok && resp.status !== 0) isAvailable = false;
+        } catch (e) {
+          // 本地 file:// 協議直接允許顯示
+        }
+
+        const div = document.createElement('a');
+        div.href = item.name;
+        div.className = `p-3 rounded-xl border flex items-center justify-between transition ${
+          isAvailable 
+            ? 'bg-slate-950 border-slate-800 hover:border-slate-700 text-slate-200' 
+            : 'bg-slate-950/40 border-slate-900 text-slate-600'
+        }`;
+        div.innerHTML = `
+          <div>
+            <div class="font-bold text-white">${item.name}</div>
+            <div class="text-[10px] text-slate-400 mt-0.5">${item.desc}</div>
+          </div>
+          <span class="text-xs ${isAvailable ? 'text-cyan-400' : 'text-slate-600'}">進入 ➔</span>
+        `;
+        container.appendChild(div);
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', scanHtmlFiles);
+  </script>
+</body>
+</html>
