@@ -2148,26 +2148,49 @@ function confirmQuickManualEntry() {
       const emptyHint = document.getElementById('chart-empty-placeholder');
       if (!svg || !activeTourney) return;
 
+      const showStack = document.getElementById('chk-chart-stack') ? document.getElementById('chk-chart-stack').checked : true;
+      const showMyBB = document.getElementById('chk-chart-bb') ? document.getElementById('chk-chart-bb').checked : true;
+      const showAvgBB = document.getElementById('chk-chart-avgbb') ? document.getElementById('chk-chart-avgbb').checked : true;
+
       const hands = activeTourney.hands || [];
       const dataPoints = [];
+
+      const initStack = activeTourney.startStack || 30000;
+      const initBB = activeTourney.startBB || 200;
+      let runningAvgStack = initStack;
+
       dataPoints.push({
         idx: 0,
         time: activeTourney.startTime ? activeTourney.startTime.slice(11, 16) : '00:00',
-        stack: activeTourney.startStack || 30000,
-        bb: activeTourney.startBB || 200,
+        stack: initStack,
+        bb: initBB,
+        myBB: initBB > 0 ? parseFloat((initStack / initBB).toFixed(1)) : 0,
+        avgBB: initBB > 0 ? parseFloat((runningAvgStack / initBB).toFixed(1)) : 0,
         desc: '賽事開始'
       });
 
       hands.forEach((h, i) => {
-        if (h.resultingStack !== undefined || h.bb) {
-          const curStack = h.resultingStack !== undefined ? h.resultingStack : (dataPoints[dataPoints.length - 1].stack);
-          const curBB = h.currentBB || h.bb || (dataPoints[dataPoints.length - 1].bb);
+        if (h.avgStack && h.avgStack > 0) {
+          runningAvgStack = h.avgStack;
+        } else if (h.playersLeft && h.totalEntries && h.playersLeft > 0) {
+          runningAvgStack = Math.round((h.totalEntries * initStack) / h.playersLeft);
+        }
+
+        if (h.resultingStack !== undefined || h.bb || h.type === 'field') {
+          const prevPt = dataPoints[dataPoints.length - 1];
+          const curStack = h.resultingStack !== undefined ? h.resultingStack : prevPt.stack;
+          const curBB = h.currentBB || h.bb || prevPt.bb;
+          const myBBVal = curBB > 0 ? parseFloat((curStack / curBB).toFixed(1)) : 0;
+          const avgBBVal = curBB > 0 ? parseFloat((runningAvgStack / curBB).toFixed(1)) : 0;
+
           dataPoints.push({
             idx: i + 1,
             time: h.time || '',
             stack: curStack,
             bb: curBB,
-            desc: h.hand ? `${h.hand} (${h.pos || ''})` : (h.notes || '盲碼打點')
+            myBB: myBBVal,
+            avgBB: avgBBVal,
+            desc: h.hand ? `${h.hand} (${h.pos || ''})` : (h.notes || '狀態更新')
           });
         }
       });
@@ -2181,16 +2204,23 @@ function confirmQuickManualEntry() {
 
       const width = 800;
       const height = 200;
-      const padding = { top: 20, right: 30, bottom: 25, left: 35 };
+      const padding = { top: 20, right: 35, bottom: 25, left: 40 };
 
+      // 左軸：總籌碼量 (Stack) 比例尺
       const minStack = 0;
-      const maxStack = Math.max(...dataPoints.map(d => d.stack), (activeTourney.startStack || 30000) * 1.5);
-      const minBB = 0;
-      const maxBB = Math.max(...dataPoints.map(d => d.bb), (activeTourney.startBB || 200) * 2);
+      const maxStack = Math.max(...dataPoints.map(d => d.stack), initStack * 1.3, 1);
+
+      // 右軸：BB數與均碼(BB) 共用同一套 BB 比例尺，方便直觀對比自身 BB 是否高於均碼
+      const minBBCount = 0;
+      const maxBBCount = Math.max(
+        ...dataPoints.map(d => Math.max(d.myBB, d.avgBB)),
+        (initStack / (initBB || 1)) * 1.2,
+        10
+      );
 
       const getX = (i) => padding.left + (i / (dataPoints.length - 1)) * (width - padding.left - padding.right);
       const getYStack = (val) => height - padding.bottom - ((val - minStack) / (maxStack - minStack || 1)) * (height - padding.top - padding.bottom);
-      const getYBB = (val) => height - padding.bottom - ((val - minBB) / (maxBB - minBB || 1)) * (height - padding.top - padding.bottom);
+      const getYBBCount = (val) => height - padding.bottom - ((val - minBBCount) / (maxBBCount - minBBCount || 1)) * (height - padding.top - padding.bottom);
 
       const buildSmoothPath = (pts, getYFn) => {
         if (pts.length === 0) return '';
@@ -2208,29 +2238,67 @@ function confirmQuickManualEntry() {
       };
 
       const pathStackD = buildSmoothPath(dataPoints.map(d => d.stack), (v) => getYStack(v));
-      const pathBBD = buildSmoothPath(dataPoints.map(d => d.bb), (v) => getYBB(v));
+      const pathMyBBD = buildSmoothPath(dataPoints.map(d => d.myBB), (v) => getYBBCount(v));
+      const pathAvgBBD = buildSmoothPath(dataPoints.map(d => d.avgBB), (v) => getYBBCount(v));
 
       let svgHTML = `
         <defs>
           <linearGradient id="gradStack" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stop-color="#34d399" stop-opacity="0.3"/>
+            <stop offset="0%" stop-color="#34d399" stop-opacity="0.28"/>
             <stop offset="100%" stop-color="#34d399" stop-opacity="0.0"/>
+          </linearGradient>
+          <linearGradient id="gradMyBB" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#22d3ee" stop-opacity="0.20"/>
+            <stop offset="100%" stop-color="#22d3ee" stop-opacity="0.0"/>
           </linearGradient>
         </defs>
         <line x1="${padding.left}" y1="${height - padding.bottom}" x2="${width - padding.right}" y2="${height - padding.bottom}" stroke="#334155" stroke-width="1"/>
         <line x1="${padding.left}" y1="${padding.top}" x2="${padding.left}" y2="${height - padding.bottom}" stroke="#334155" stroke-width="1"/>
-        
-        <path d="${pathStackD} L ${getX(dataPoints.length - 1)},${height - padding.bottom} L ${getX(0)},${height - padding.bottom} Z" fill="url(#gradStack)"/>
-        <path d="${pathStackD}" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round"/>
-        <path d="${pathBBD}" fill="none" stroke="#22d3ee" stroke-width="2" stroke-dasharray="4,3" stroke-linecap="round"/>
+        <line x1="${width - padding.right}" y1="${padding.top}" x2="${width - padding.right}" y2="${height - padding.bottom}" stroke="#334155" stroke-width="1" stroke-dasharray="2,2"/>
       `;
 
+      // 1. 總籌碼量 (Stack - 綠色實線 + 漸層填充)
+      if (showStack) {
+        svgHTML += `
+          <path d="${pathStackD} L ${getX(dataPoints.length - 1)},${height - padding.bottom} L ${getX(0)},${height - padding.bottom} Z" fill="url(#gradStack)"/>
+          <path d="${pathStackD}" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round"/>
+        `;
+      }
+
+      // 2. 均碼 (Avg BB - 紫色虛線)
+      if (showAvgBB) {
+        svgHTML += `
+          <path d="${pathAvgBBD}" fill="none" stroke="#c084fc" stroke-width="2" stroke-dasharray="5,4" stroke-linecap="round"/>
+        `;
+      }
+
+      // 3. 自身 BB 數 (My BB - 青色實線)
+      if (showMyBB) {
+        if (!showStack) {
+          svgHTML += `<path d="${pathMyBBD} L ${getX(dataPoints.length - 1)},${height - padding.bottom} L ${getX(0)},${height - padding.bottom} Z" fill="url(#gradMyBB)"/>`;
+        }
+        svgHTML += `
+          <path d="${pathMyBBD}" fill="none" stroke="#22d3ee" stroke-width="2.2" stroke-linecap="round"/>
+        `;
+      }
+
+      // 繪製節點與互動 Tooltip
       dataPoints.forEach((pt, i) => {
         const cx = getX(i);
-        const cyStack = getYStack(pt.stack);
-        svgHTML += `
-          <circle cx="${cx}" cy="${cyStack}" r="3.5" fill="#10b981" stroke="#0f172a" stroke-width="1.5" class="chart-point" data-info="[${escapeHTML(pt.time)}] ${escapeHTML(pt.desc)} | 碼量: ${pt.stack.toLocaleString()} (${pt.bb > 0 ? (pt.stack/pt.bb).toFixed(1) : 0} BB)" onmouseover="showChartTooltip(evt, this)" onmouseout="hideChartTooltip()"/>
-        `;
+        const infoStr = `[${escapeHTML(pt.time)}] ${escapeHTML(pt.desc)} | 總籌碼: ${pt.stack.toLocaleString()} | 自身: ${pt.myBB} BB | 均碼: ${pt.avgBB} BB (盲注:${pt.bb})`;
+
+        if (showStack) {
+          const cyStack = getYStack(pt.stack);
+          svgHTML += `<circle cx="${cx}" cy="${cyStack}" r="3.5" fill="#10b981" stroke="#0f172a" stroke-width="1.5" class="chart-point" data-info="${infoStr}" onmouseover="showChartTooltip(evt, this)" onmouseout="hideChartTooltip()"/>`;
+        }
+        if (showMyBB) {
+          const cyMyBB = getYBBCount(pt.myBB);
+          svgHTML += `<circle cx="${cx}" cy="${cyMyBB}" r="3.2" fill="#22d3ee" stroke="#0f172a" stroke-width="1.5" class="chart-point" data-info="${infoStr}" onmouseover="showChartTooltip(evt, this)" onmouseout="hideChartTooltip()"/>`;
+        }
+        if (showAvgBB) {
+          const cyAvgBB = getYBBCount(pt.avgBB);
+          svgHTML += `<circle cx="${cx}" cy="${cyAvgBB}" r="2.8" fill="#c084fc" stroke="#0f172a" stroke-width="1.2" class="chart-point" data-info="${infoStr}" onmouseover="showChartTooltip(evt, this)" onmouseout="hideChartTooltip()"/>`;
+        }
       });
 
       svg.innerHTML = svgHTML;
@@ -2246,7 +2314,7 @@ function confirmQuickManualEntry() {
       const rect = el.ownerSVGElement.getBoundingClientRect();
       const x = evt.clientX - rect.left + 10;
       const y = evt.clientY - rect.top - 30;
-      tooltip.style.left = `${Math.min(x, rect.width - 200)}px`;
+      tooltip.style.left = `${Math.min(x, rect.width - 240)}px`;
       tooltip.style.top = `${Math.max(10, y)}px`;
     }
 
