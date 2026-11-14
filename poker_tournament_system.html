@@ -286,21 +286,28 @@
       <div id="box-live-workspace" class="hidden flex flex-col gap-3">
         <!-- 即時雙軸平滑折線圖 -->
         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 sm:p-4 shadow-xl flex flex-col gap-2 relative">
-          <div class="flex justify-between items-center border-b border-slate-800/80 pb-2">
+          <div class="flex flex-wrap justify-between items-center border-b border-slate-800/80 pb-2 gap-2">
             <div class="flex items-center gap-2">
               <span class="text-sm">📈</span>
-              <span class="font-bold text-xs sm:text-sm text-white">大盲與籌碼雙軸波動圖 (平滑貝茲曲線)</span>
+              <span class="font-bold text-xs sm:text-sm text-white">籌碼與 BB 雙軸波動圖 (平滑貝茲曲線)</span>
             </div>
             
-            <div class="flex items-center gap-3 text-[11px] font-mono">
-              <span class="flex items-center gap-1.5">
-                <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-sm shadow-cyan-400/50"></span>
-                <span class="text-cyan-300 font-bold">大盲 (BB)</span>
-              </span>
-              <span class="flex items-center gap-1.5">
+            <div class="flex flex-wrap items-center gap-3 text-[11px] font-mono select-none">
+              <label class="flex items-center gap-1.5 cursor-pointer hover:opacity-80 transition">
+                <input type="checkbox" id="chk-chart-stack" checked onchange="renderDualAxisChart()" class="w-3.5 h-3.5 accent-emerald-500 rounded cursor-pointer">
                 <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400/50"></span>
-                <span class="text-emerald-300 font-bold">籌碼量 (Stack)</span>
-              </span>
+                <span class="text-emerald-300 font-bold">總籌碼量 (Stack)</span>
+              </label>
+              <label class="flex items-center gap-1.5 cursor-pointer hover:opacity-80 transition">
+                <input type="checkbox" id="chk-chart-bb" checked onchange="renderDualAxisChart()" class="w-3.5 h-3.5 accent-cyan-400 rounded cursor-pointer">
+                <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 shadow-sm shadow-cyan-400/50"></span>
+                <span class="text-cyan-300 font-bold">BB數 (My BB)</span>
+              </label>
+              <label class="flex items-center gap-1.5 cursor-pointer hover:opacity-80 transition">
+                <input type="checkbox" id="chk-chart-avgbb" checked onchange="renderDualAxisChart()" class="w-3.5 h-3.5 accent-purple-400 rounded cursor-pointer">
+                <span class="w-2.5 h-2.5 rounded-full bg-purple-400 shadow-sm shadow-purple-400/50"></span>
+                <span class="text-purple-300 font-bold">均碼 (Avg BB)</span>
+              </label>
             </div>
           </div>
 
